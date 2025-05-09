@@ -10,6 +10,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
+env:
+  UV_FROZEN: "true"
+  UV_NO_SYNC: "true"
+
 jobs:
   format:
     runs-on: ubuntu-latest
@@ -52,3 +56,16 @@ jobs:
 
     - name: Check linting
       run: make lint
+
+  test:
+    strategy:
+      matrix:
+        python-version:
+          - "3.11"
+    uses:
+      ./.github/workflows/_test.yml
+    with:
+      working-directory: "."
+      python-version: ${{ matrix.python-version }}
+    secrets: inherit
+

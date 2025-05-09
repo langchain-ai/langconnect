@@ -17,11 +17,13 @@ LOGGER = logging.getLogger(__name__)
 
 # Read allowed origins from environment variable
 ALLOW_ORIGINS_JSON = os.getenv("ALLOW_ORIGINS")
-try:
-    ALLOWED_ORIGINS = json.loads(ALLOW_ORIGINS_JSON)
-except json.JSONDecodeError:
-    LOGGER.error(f"Failed to parse ALLOW_ORIGINS: {ALLOW_ORIGINS_JSON}. Using default.")
-    ALLOWED_ORIGINS = ["http://localhost:3000"]
+
+if ALLOW_ORIGINS_JSON:
+    ALLOWED_ORIGINS = json.loads(ALLOW_ORIGINS_JSON.strip())
+    LOGGER.info(f"ALLOW_ORIGINS environment variable set to: {ALLOW_ORIGINS_JSON}")
+else:
+    ALLOWED_ORIGINS = None
+    LOGGER.warning("ALLOW_ORIGINS environment variable not set.")
 
 # Initialize FastAPI app
 APP = FastAPI(
