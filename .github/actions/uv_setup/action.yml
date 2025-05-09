@@ -9,7 +9,7 @@ inputs:
     required: true
 
 env:
-  UV_VERSION: "0.5.25"
+  UV_VERSION: "0.7.3"
 
 runs:
   using: composite
