@@ -18,6 +18,30 @@ env:
 
 jobs:
   build:
+    services:
+      postgres:
+        # ensure postgres version this stays in sync with prod database
+        # and with postgres version used in docker compose
+        # Testing with postgres that has the pg vector extension
+        image: postgres/pgvector
+        env:
+          # optional (defaults to `postgres`)
+          POSTGRES_DB: langchain_test
+          # required
+          POSTGRES_PASSWORD: langchain
+          # optional (defaults to `5432`)
+          POSTGRES_PORT: 5432
+          # optional (defaults to `postgres`)
+          POSTGRES_USER: langchain
+        ports:
+          # maps tcp port 5432 on service container to the host
+          - 5432:5432
+        # set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 3s
+          --health-timeout 5s
+          --health-retries 10
     defaults:
       run:
         working-directory: ${{ inputs.working-directory }}
@@ -25,8 +49,17 @@ jobs:
     timeout-minutes: 20
     name: "make test #${{ inputs.python-version }}"
     steps:
+      - name: Test database connection
+        run: |
+          # Set up postgresql-client
+          sudo apt-get install -y postgresql-client
+          # Test psql connection
+          psql -h localhost -p 5432 -U langchain -d langchain_test -c "SELECT 1;"
+        env:
+          # postgress password is required; alternatively, you can run:
+          # `PGPASSWORD=postgres_password psql ...`
+          PGPASSWORD: langchain
       - uses: actions/checkout@v4
-
       - name: Set up Python ${{ inputs.python-version }} + uv
         uses: "./.github/actions/uv_setup"
         id: setup-python
