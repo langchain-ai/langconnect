@@ -30,7 +30,7 @@ jobs:
           # required
           POSTGRES_PASSWORD: postgres
           # optional (defaults to `5433`)
-          POSTGRES_PORT: 5433
+          POSTGRES_PORT: 5432
           # optional (defaults to `postgres`)
           POSTGRES_USER: postgres
         ports:
