@@ -11,7 +11,7 @@ from langconnect.server import APP
 
 def reset_db() -> None:
     """Hacky code to initialize the database. This needs to be fixed."""
-    if POSTGRES_DB != "test":
+    if POSTGRES_DB != "langchain_test":
         raise AssertionError(
             "Attempting to run unit tests with a non-test database. "
             "Please set the database to 'test' before running tests."
