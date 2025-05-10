@@ -35,7 +35,7 @@ jobs:
           POSTGRES_USER: postgres
         ports:
           # maps tcp port 5432 on service container to the host
-          - 5433:5432
+          - 5432:5432
         # set health checks to wait until postgres has started
         options: >-
           --health-cmd pg_isready
@@ -54,7 +54,7 @@ jobs:
           # Set up postgresql-client
           sudo apt-get install -y postgresql-client
           # Test psql connection
-          psql -h localhost -p 5433 -U postgres -d test -c "SELECT 1;"
+          psql -h localhost -p 5432 -U postgres -d test -c "SELECT 1;"
         env:
           # postgress password is required; alternatively, you can run:
           # `PGPASSWORD=postgres_password psql ...`
