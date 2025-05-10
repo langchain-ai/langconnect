@@ -15,6 +15,13 @@ env:
   UV_NO_SYNC: "true"
 
 jobs:
+  format:
+    # Delete me after updating repo configuration
+    runs-on: ubuntu-latest
+    steps:
+    - name: No-op
+      run: echo "1"
+
   lint:
     runs-on: ubuntu-latest
 
