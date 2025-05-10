@@ -6,7 +6,6 @@ from httpx import ASGITransport, AsyncClient
 
 from langconnect.database import get_vectorstore
 from langconnect.database.connection import POSTGRES_DB, POSTGRES_HOST
-
 from langconnect.server import APP
 
 
@@ -69,4 +68,3 @@ async def test_create_and_get_collection() -> None:
         get_response = await client.get(f"/collections/{data['name']}")
         assert get_response.status_code == 200
         assert get_response.json()["uuid"] == data["uuid"]
-

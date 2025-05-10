@@ -7,6 +7,3 @@ if "OPENAI_API_KEY" in os.environ:
     )
 
 os.environ["OPENAI_API_KEY"] = "test_key"
-
-
-
