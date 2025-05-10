@@ -26,13 +26,13 @@ jobs:
         image: pgvector/pgvector:pg16
         env:
           # optional (defaults to `postgres`)
-          POSTGRES_DB: langchain_test
+          POSTGRES_DB: test
           # required
-          POSTGRES_PASSWORD: langchain
-          # optional (defaults to `5432`)
-          POSTGRES_PORT: 5432
+          POSTGRES_PASSWORD: postgres
+          # optional (defaults to `5433`)
+          POSTGRES_PORT: 5433
           # optional (defaults to `postgres`)
-          POSTGRES_USER: langchain
+          POSTGRES_USER: postgres
         ports:
           # maps tcp port 5432 on service container to the host
           - 5432:5432
@@ -54,7 +54,7 @@ jobs:
           # Set up postgresql-client
           sudo apt-get install -y postgresql-client
           # Test psql connection
-          psql -h localhost -p 5432 -U langchain -d langchain_test -c "SELECT 1;"
+          psql -h localhost -p 5433 -U postgres -d test -c "SELECT 1;"
         env:
           # postgress password is required; alternatively, you can run:
           # `PGPASSWORD=postgres_password psql ...`
