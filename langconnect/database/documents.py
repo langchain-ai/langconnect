@@ -1,4 +1,5 @@
 import json
+import logging
 import uuid
 from typing import Any, Optional
 
@@ -11,6 +12,8 @@ from langconnect.database.connection import (
     get_vectorstore,
 )
 from langconnect.defaults import DEFAULT_EMBEDDINGS
+
+logger = logging.getlogger(__name__)
 
 
 def add_documents_to_vectorstore(
@@ -45,7 +48,7 @@ async def list_documents_in_vectorstore(
                 collection_name,
             )
             if not collection_record:
-                print(f"Warning: Collection '{collection_name}' not found.")
+                logger.info(f"Warning: Collection '{collection_name}' not found.")
                 return []
 
             collection_uuid = collection_record["uuid"]
@@ -75,7 +78,7 @@ async def list_documents_in_vectorstore(
                     )
                 except json.JSONDecodeError:
                     metadata_dict = {"error": "Failed to parse metadata"}
-                    print(
+                    logger.info(
                         f"Warning: Could not parse metadata for document ID {record['id']}: {record['cmetadata']}"
                     )
 
@@ -88,12 +91,12 @@ async def list_documents_in_vectorstore(
                     }
                 )
     except asyncpg.exceptions.UndefinedTableError:
-        print(
+        logger.info(
             f"Warning: Table langchain_pg_embedding or langchain_pg_collection not found for collection '{collection_name}'. Returning empty list."
         )
         return []
     except Exception as e:
-        print(f"Error listing documents from vector store: {e}")
+        logger.info(f"Error listing documents from vector store: {e}")
         return []
 
     return documents
@@ -108,7 +111,7 @@ async def get_document_from_vectorstore(
     try:
         doc_uuid = uuid.UUID(document_id)
     except ValueError:
-        print(f"Error: Invalid document ID format: {document_id}")
+        logger.info(f"Error: Invalid document ID format: {document_id}")
         return None
 
     try:
@@ -127,7 +130,7 @@ async def get_document_from_vectorstore(
                 }
             return None
     except Exception as e:
-        print(f"Error getting document {document_id} from vector store: {e}")
+        logger.info(f"Error getting document {document_id} from vector store: {e}")
         return None
 
 
@@ -151,7 +154,7 @@ async def delete_documents_from_vectorstore(
                 collection_name,
             )
             if not collection_record:
-                print(
+                logger.info(
                     f"Warning: Collection '{collection_name}' not found for deletion."
                 )
                 return False  # Indicate failure as collection doesn't exist
@@ -174,12 +177,12 @@ async def delete_documents_from_vectorstore(
             # Parse the result string like 'DELETE 5' to get the count
             try:
                 deleted_count = int(result.split()[-1])
-                print(
+                logger.info(
                     f"Deleted {deleted_count} chunks for file_ids {file_ids} in collection '{collection_name}'."
                 )
             except (IndexError, ValueError):
                 # Handle cases where the result string might be unexpected
-                print(
+                logger.info(
                     f"Deletion executed for file_ids {file_ids} in collection '{collection_name}', but count parsing failed. Result: {result}"
                 )
                 # Consider success if execute didn't raise an error
@@ -188,12 +191,12 @@ async def delete_documents_from_vectorstore(
             return True  # Indicate success
 
     except asyncpg.exceptions.UndefinedTableError:
-        print(
+        logger.info(
             f"Warning: Table langchain_pg_embedding or langchain_pg_collection not found for deletion in collection '{collection_name}'."
         )
         return False
     except Exception as e:
-        print(
+        logger.info(
             f"Error deleting documents by file_ids {file_ids} from collection {collection_name}: {e}"
         )
         return False

@@ -1,3 +1,4 @@
+import logging
 import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -12,6 +13,9 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from langconnect.defaults import DEFAULT_COLLECTION_NAME, DEFAULT_EMBEDDINGS
 
+logger = logging.getlogger(__name__)
+
+
 POSTGRES_HOST = os.getenv("POSTGRES_HOST")
 POSTGRES_PORT = os.getenv("POSTGRES_PORT")
 POSTGRES_USER = os.getenv("POSTGRES_USER")
@@ -25,19 +29,15 @@ async def get_db_pool() -> asyncpg.Pool:
     """Get the pg connection pool."""
     global _pool
     if _pool is None:
-        try:
-            # Use parsed components for asyncpg connection
-            _pool = await asyncpg.create_pool(
-                user=POSTGRES_USER,
-                password=POSTGRES_PASSWORD,
-                host=POSTGRES_HOST,
-                port=POSTGRES_PORT,
-                database=POSTGRES_DB,
-            )
-            print("Database connection pool created using parsed URL components.")
-        except Exception as e:
-            print(f"Error creating database connection pool: {e}")
-            raise
+        # Use parsed components for asyncpg connection
+        _pool = await asyncpg.create_pool(
+            user=POSTGRES_USER,
+            password=POSTGRES_PASSWORD,
+            host=POSTGRES_HOST,
+            port=POSTGRES_PORT,
+            database=POSTGRES_DB,
+        )
+        logger.info("Database connection pool created using parsed URL components.")
     return _pool
 
 
@@ -47,7 +47,6 @@ async def close_db_pool():
     if _pool:
         await _pool.close()
         _pool = None
-        print("Database connection pool closed.")
 
 
 @asynccontextmanager

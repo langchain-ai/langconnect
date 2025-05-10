@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import Any
 
 from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile
@@ -13,6 +14,8 @@ from langconnect.database import (
 )
 from langconnect.models import DocumentResponse, SearchQuery, SearchResult
 from langconnect.services import process_document
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["documents"])
 
@@ -72,7 +75,7 @@ async def documents_create(
                 all_langchain_docs.extend(langchain_docs)
                 processed_files_count += 1
             else:
-                print(
+                logger.info(
                     f"Warning: File {file.filename} resulted in no processable documents."
                 )
                 # Decide if this constitutes a failure
@@ -80,7 +83,7 @@ async def documents_create(
 
         except Exception as proc_exc:
             # Log the error and the file that caused it
-            print(f"Error processing file {file.filename}: {proc_exc}")
+            logger.info(f"Error processing file {file.filename}: {proc_exc}")
             failed_files.append(file.filename)
             # Decide on behavior: continue processing others or fail fast?
             # For now, let's collect failures and report them, but continue processing.
@@ -125,7 +128,7 @@ async def documents_create(
         raise http_exc
     except Exception as add_exc:
         # Handle exceptions during the vector store addition process
-        print(f"Error adding documents to vector store: {add_exc}")
+        logger.info(f"Error adding documents to vector store: {add_exc}")
         raise HTTPException(
             status_code=500,
             detail=f"Failed to add documents to vector store: {add_exc!s}",

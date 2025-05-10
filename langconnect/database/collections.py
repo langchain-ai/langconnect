@@ -1,8 +1,11 @@
 import asyncio
 import json
+import logging
 from typing import Any
 
 from langconnect.database.connection import get_db_connection, get_vectorstore
+
+logger = logging.getlogger(__name__)
 
 
 def create_pgvector_collection(
@@ -39,7 +42,9 @@ async def list_pgvector_collections() -> list[dict[str, Any]]:
                     else:
                         metadata = record["cmetadata"]
                 except Exception as e:
-                    print(f"Error parsing metadata in list_pgvector_collections: {e}")
+                    logger.exception(
+                        f"Error parsing metadata in list_pgvector_collections: {e}"
+                    )
                     # If parsing fails, use empty dict
 
             collection = {
@@ -73,7 +78,7 @@ async def get_pgvector_collection_details(
                     else:
                         metadata = record["cmetadata"]
                 except Exception as e:
-                    print(
+                    logger.exception(
                         f"Error parsing metadata in get_pgvector_collection_details: {e}"
                     )
                     # If parsing fails, use empty dict
@@ -153,7 +158,9 @@ async def update_pgvector_collection(
                     else:
                         updated_metadata = record["cmetadata"]
                 except Exception as e:
-                    print(f"Error parsing metadata in update_pgvector_collection: {e}")
+                    logger.exception(
+                        f"Error parsing metadata in update_pgvector_collection: {e}"
+                    )
 
             return {
                 "uuid": str(record["uuid"]),
