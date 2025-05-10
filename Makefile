@@ -11,7 +11,7 @@ lint:
 TEST_FILE ?= tests/unit_tests
 
 test:
-	uv run pytest --disable-socket --allow-unix-socket $(TEST_FILE)
+	IS_TESTING=true uv run pytest $(TEST_FILE)
 
 help:
 	@echo "Available commands:"
