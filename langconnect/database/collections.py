@@ -23,7 +23,9 @@ async def list_pgvector_collections() -> list[dict[str, Any]]:
     collections = []
     async with get_db_connection() as conn:
         query = """
-            SELECT uuid, name, cmetadata FROM langchain_pg_collection ORDER BY name;
+            SELECT uuid, name, cmetadata
+            FROM langchain_pg_collection 
+            ORDER BY name;
         """
         records = await conn.fetch(query)
         for record in records:

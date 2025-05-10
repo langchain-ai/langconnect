@@ -14,17 +14,17 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 
-LOGGER = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 # Read allowed origins from environment variable
 ALLOW_ORIGINS_JSON = os.getenv("ALLOW_ORIGINS")
 
 if ALLOW_ORIGINS_JSON:
     ALLOWED_ORIGINS = json.loads(ALLOW_ORIGINS_JSON.strip())
-    LOGGER.info(f"ALLOW_ORIGINS environment variable set to: {ALLOW_ORIGINS_JSON}")
+    logger.info(f"ALLOW_ORIGINS environment variable set to: {ALLOW_ORIGINS_JSON}")
 else:
-    ALLOWED_ORIGINS = None
-    LOGGER.warning("ALLOW_ORIGINS environment variable not set.")
+    ALLOWED_ORIGINS = ()
+    logger.warning("ALLOW_ORIGINS environment variable not set.")
 
 # Initialize FastAPI app
 APP = FastAPI(
@@ -50,7 +50,7 @@ APP.include_router(admin_router)
 
 
 @APP.get("/health")
-async def health_check():
+async def health_check() -> dict:
     """Health check endpoint."""
     return {"status": "ok"}
 

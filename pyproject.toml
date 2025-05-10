@@ -45,6 +45,7 @@ dev = [
     "langgraph-cli>=0.1.75",
     "pytest-socket>=0.7.0",
     "pytest-timeout>=2.4.0",
+    "pytest-asyncio>=0.26.0",
 ]
 
 [tool.pytest.ini_options]
@@ -60,6 +61,7 @@ testpaths = [
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.ruff]
 line-length = 88
