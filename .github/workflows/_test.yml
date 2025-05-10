@@ -23,7 +23,7 @@ jobs:
         # ensure postgres version this stays in sync with prod database
         # and with postgres version used in docker compose
         # Testing with postgres that has the pg vector extension
-        image: postgres/pgvector
+        image: pgvector/pgvector:pg16
         env:
           # optional (defaults to `postgres`)
           POSTGRES_DB: langchain_test
