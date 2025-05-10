@@ -2,7 +2,7 @@ import asyncio
 import json
 from typing import Any
 
-from .connection import get_db_connection, get_vectorstore
+from langconnect.database.connection import get_db_connection, get_vectorstore
 
 
 def create_pgvector_collection(

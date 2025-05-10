@@ -1,6 +1,6 @@
 import json
 import uuid
-from typing import Any
+from typing import Any, Optional
 
 import asyncpg
 from langchain_core.documents import Document
@@ -10,10 +10,7 @@ from langconnect.database.connection import (
     get_db_connection,
     get_vectorstore,
 )
-
-from ..defaults import DEFAULT_EMBEDDINGS
-
-# --- Database Operations using PGVector ---
+from langconnect.defaults import DEFAULT_EMBEDDINGS
 
 
 def add_documents_to_vectorstore(
@@ -104,7 +101,7 @@ async def list_documents_in_vectorstore(
 
 async def get_document_from_vectorstore(
     document_id: str,
-) -> dict[str, Any] | None:
+) -> Optional[dict[str, Any]]:
     """Gets a single document by its ID from the vector store's underlying table.
     Requires direct SQL access.
     """
@@ -230,8 +227,7 @@ def search_documents_in_vectorstore(
     return formatted_results
 
 
-# --- Helper to convert DB records (if needed elsewhere) ---
-def record_to_dict(record) -> dict[str, Any] | None:
+def record_to_dict(record) -> Optional[dict[str, Any]]:
     """Converts an asyncpg Record to a dictionary (useful for direct DB access)."""
     if record is None:
         return None

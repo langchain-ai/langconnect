@@ -1,7 +1,7 @@
 import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 import asyncpg
 import sqlalchemy
@@ -10,7 +10,7 @@ from langchain_postgres.vectorstores import PGVector
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from ..defaults import DEFAULT_COLLECTION_NAME, DEFAULT_EMBEDDINGS
+from langconnect.defaults import DEFAULT_COLLECTION_NAME, DEFAULT_EMBEDDINGS
 
 POSTGRES_HOST = os.getenv("POSTGRES_HOST")
 POSTGRES_PORT = os.getenv("POSTGRES_PORT")
@@ -80,8 +80,8 @@ DBConnection = Union[sqlalchemy.engine.Engine, str]
 def get_vectorstore(
     collection_name: str = DEFAULT_COLLECTION_NAME,
     embeddings: Embeddings = DEFAULT_EMBEDDINGS,
-    engine: DBConnection | Engine | AsyncEngine | None = None,
-    collection_metadata: dict[str, Any] | None = None,
+    engine: Optional[Union[DBConnection, Engine, AsyncEngine]] = None,
+    collection_metadata: Optional[dict[str, Any]] = None,
 ) -> PGVector:
     """Initializes and returns a PGVector store for a specific collection,
     using an existing engine or creating one from connection parameters.
