@@ -1,15 +1,16 @@
 import json
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import asyncpg
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 
 from langconnect.database.connection import (
-    get_vectorstore,
     get_db_connection,
+    get_vectorstore,
 )
+
 from ..defaults import DEFAULT_EMBEDDINGS
 
 # --- Database Operations using PGVector ---
@@ -17,9 +18,9 @@ from ..defaults import DEFAULT_EMBEDDINGS
 
 def add_documents_to_vectorstore(
     collection_name: str,
-    documents: List[Document],
+    documents: list[Document],
     embeddings: Embeddings = DEFAULT_EMBEDDINGS,
-) -> List[str]:
+) -> list[str]:
     """Adds LangChain documents to the specified PGVector collection."""
     store = get_vectorstore(
         collection_name=collection_name,
@@ -33,9 +34,8 @@ async def list_documents_in_vectorstore(
     collection_name: str,
     limit: int = 10,
     offset: int = 0,
-) -> List[Dict[str, Any]]:
-    """
-    Lists unique documents based on 'file_id' in metadata from the vector store.
+) -> list[dict[str, Any]]:
+    """Lists unique documents based on 'file_id' in metadata from the vector store.
     Returns one representative entry per file_id.
     NOTE: This bypasses LangChain's abstraction for efficient unique listing.
     Requires direct asyncpg connection to query langchain_pg_embedding table.
@@ -104,9 +104,8 @@ async def list_documents_in_vectorstore(
 
 async def get_document_from_vectorstore(
     document_id: str,
-) -> Optional[Dict[str, Any]]:
-    """
-    Gets a single document by its ID from the vector store's underlying table.
+) -> dict[str, Any] | None:
+    """Gets a single document by its ID from the vector store's underlying table.
     Requires direct SQL access.
     """
     try:
@@ -129,8 +128,7 @@ async def get_document_from_vectorstore(
                     "content": record["document"],
                     "metadata": record["cmetadata"],
                 }
-            else:
-                return None
+            return None
     except Exception as e:
         print(f"Error getting document {document_id} from vector store: {e}")
         return None
@@ -138,7 +136,7 @@ async def get_document_from_vectorstore(
 
 async def delete_documents_from_vectorstore(
     collection_name: str,
-    file_ids: List[str],
+    file_ids: list[str],
 ) -> bool:
     """Deletes all document chunks associated with the given file_ids
     from the specified PGVector collection using direct SQL.
@@ -209,7 +207,7 @@ def search_documents_in_vectorstore(
     query: str,
     limit: int = 4,
     embeddings: Embeddings = DEFAULT_EMBEDDINGS,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Performs semantic similarity search within the specified PGVector collection."""
     store = get_vectorstore(
         collection_name=collection_name,
@@ -233,7 +231,7 @@ def search_documents_in_vectorstore(
 
 
 # --- Helper to convert DB records (if needed elsewhere) ---
-def record_to_dict(record) -> Optional[Dict[str, Any]]:
+def record_to_dict(record) -> dict[str, Any] | None:
     """Converts an asyncpg Record to a dictionary (useful for direct DB access)."""
     if record is None:
         return None

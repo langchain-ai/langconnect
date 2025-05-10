@@ -2,15 +2,11 @@
 
 format:
 	ruff format .
-
-format-check:
-	ruff format --check .
+	ruff check --fix .
 
 lint:
 	ruff check .
-
-lint-fix:
-	ruff check --fix .
+	ruff format --diff
 
 TEST_FILE ?= tests/unit_tests
 

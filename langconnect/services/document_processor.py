@@ -1,14 +1,13 @@
-from typing import List, Optional
 import logging
 import uuid
-from fastapi import UploadFile
 
-from langchain_core.documents.base import Blob, Document
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from fastapi import UploadFile
 from langchain_community.document_loaders.parsers import BS4HTMLParser, PDFMinerParser
 from langchain_community.document_loaders.parsers.generic import MimeTypeBasedParser
 from langchain_community.document_loaders.parsers.msword import MsWordParser
 from langchain_community.document_loaders.parsers.txt import TextParser
+from langchain_core.documents.base import Blob, Document
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 LOGGER = logging.getLogger(__name__)
 
@@ -35,8 +34,8 @@ TEXT_SPLITTER = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=20
 
 
 async def process_document(
-    file: UploadFile, metadata: Optional[dict] = None
-) -> List[Document]:
+    file: UploadFile, metadata: dict | None = None
+) -> list[Document]:
     """Process an uploaded file into LangChain documents."""
     # Generate a unique ID for this file processing instance
     file_id = uuid.uuid4()

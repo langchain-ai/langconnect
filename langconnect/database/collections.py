@@ -1,24 +1,24 @@
 import asyncio
 import json
-from typing import Dict, List, Optional, Any
-
+from typing import Any
 
 from .connection import get_db_connection, get_vectorstore
 
 
 def create_pgvector_collection(
-    collection_name: str, metadata: Optional[Dict[str, Any]] = None
+    collection_name: str, metadata: dict[str, Any] | None = None
 ) -> None:
     """Explicitly creates a collection using PGVector with optional metadata.
     Note: This is often not necessary as adding documents implicitly creates it.
-    PGVector.create_collection is synchronous, so run in executor."""
+    PGVector.create_collection is synchronous, so run in executor.
+    """
     # Calling this will create the collection w/ metadata in the database.
     # The PGVector class will always attempt to get/create a collection when
     # the class is instantiated.
     get_vectorstore(collection_name, collection_metadata=metadata)
 
 
-async def list_pgvector_collections() -> List[Dict[str, Any]]:
+async def list_pgvector_collections() -> list[dict[str, Any]]:
     """Lists all collections directly from the langchain_pg_collection table."""
     collections = []
     async with get_db_connection() as conn:
@@ -53,7 +53,7 @@ async def list_pgvector_collections() -> List[Dict[str, Any]]:
 
 async def get_pgvector_collection_details(
     collection_name: str,
-) -> Optional[Dict[str, Any]]:
+) -> dict[str, Any] | None:
     """Gets collection details (uuid, name, metadata) from the langchain_pg_collection table."""
     async with get_db_connection() as conn:
         query = """
@@ -88,7 +88,8 @@ async def get_pgvector_collection_details(
 
 async def delete_pgvector_collection(collection_name: str) -> None:
     """Deletes a collection using PGVector.
-    PGVector.delete_collection is synchronous, so run in executor."""
+    PGVector.delete_collection is synchronous, so run in executor.
+    """
     store = get_vectorstore(collection_name)
     loop = asyncio.get_running_loop()
     await loop.run_in_executor(None, store.delete_collection)
@@ -96,9 +97,9 @@ async def delete_pgvector_collection(collection_name: str) -> None:
 
 async def update_pgvector_collection(
     collection_name: str,
-    new_name: Optional[str] = None,
-    metadata: Optional[Dict[str, Any]] = None,
-) -> Optional[Dict[str, Any]]:
+    new_name: str | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
     """Updates a collection's name and/or metadata in the langchain_pg_collection table.
 
     Args:
@@ -108,6 +109,7 @@ async def update_pgvector_collection(
 
     Returns:
         Updated collection details or None if collection not found
+
     """
     # First, get the existing collection to ensure it exists and to get current metadata
     existing_collection = await get_pgvector_collection_details(collection_name)

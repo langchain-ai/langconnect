@@ -1,13 +1,13 @@
-from typing import List
 from fastapi import APIRouter, HTTPException, status
-from langconnect.models import CollectionCreate, CollectionResponse, CollectionUpdate
+
 from langconnect.database import (
     create_pgvector_collection,
-    list_pgvector_collections,
-    get_pgvector_collection_details,
     delete_pgvector_collection,
+    get_pgvector_collection_details,
+    list_pgvector_collections,
     update_pgvector_collection,
 )
+from langconnect.models import CollectionCreate, CollectionResponse, CollectionUpdate
 
 router = APIRouter(prefix="/collections", tags=["collections"])
 
@@ -45,7 +45,7 @@ async def collections_create(
         )
 
 
-@router.get("", response_model=List[CollectionResponse])
+@router.get("", response_model=list[CollectionResponse])
 async def collections_list():
     """Lists all available PGVector collections (name and UUID)."""
     try:

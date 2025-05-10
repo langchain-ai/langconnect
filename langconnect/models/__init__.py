@@ -5,8 +5,8 @@ from langconnect.models.collection import (
 )
 from langconnect.models.document import (
     DocumentCreate,
-    DocumentUpdate,
     DocumentResponse,
+    DocumentUpdate,
     SearchQuery,
     SearchResult,
 )
@@ -16,8 +16,8 @@ __all__ = [
     "CollectionResponse",
     "CollectionUpdate",
     "DocumentCreate",
-    "DocumentUpdate",
     "DocumentResponse",
+    "DocumentUpdate",
     "SearchQuery",
     "SearchResult",
 ]

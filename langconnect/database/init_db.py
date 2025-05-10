@@ -1,4 +1,5 @@
 import logging
+
 from langconnect.database.connection import get_vectorstore
 
 logger = logging.getLogger(__name__)

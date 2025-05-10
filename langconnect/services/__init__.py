@@ -1,7 +1,7 @@
 from langconnect.services.document_processor import (
-    process_document,
-    index_document,
     SUPPORTED_MIMETYPES,
+    index_document,
+    process_document,
 )
 
-__all__ = ["process_document", "index_document", "SUPPORTED_MIMETYPES"]
+__all__ = ["SUPPORTED_MIMETYPES", "index_document", "process_document"]

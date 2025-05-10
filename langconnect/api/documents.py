@@ -1,26 +1,27 @@
-from typing import Dict, List, Any, Optional
-from fastapi import APIRouter, HTTPException, UploadFile, Query, File, Form
+import json
+from typing import Any
 
+from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile
 from langchain_core.documents import Document
-from langconnect.models import DocumentResponse, SearchQuery, SearchResult
+
 from langconnect.database import (
-    get_pgvector_collection_details,
     add_documents_to_vectorstore,
-    list_documents_in_vectorstore,
     delete_documents_from_vectorstore,
+    get_pgvector_collection_details,
+    list_documents_in_vectorstore,
     search_documents_in_vectorstore,
 )
+from langconnect.models import DocumentResponse, SearchQuery, SearchResult
 from langconnect.services import process_document
-import json
 
 router = APIRouter(tags=["documents"])
 
 
-@router.post("/collections/{collection_name}/documents", response_model=Dict[str, Any])
+@router.post("/collections/{collection_name}/documents", response_model=dict[str, Any])
 async def documents_create(
     collection_name: str,
-    files: List[UploadFile] = File(...),
-    metadatas_json: Optional[str] = Form(None),
+    files: list[UploadFile] = File(...),
+    metadatas_json: str | None = Form(None),
 ):
     """Processes and indexes (adds) new document files with optional metadata."""
     try:
@@ -28,9 +29,7 @@ async def documents_create(
         if not collection:
             raise HTTPException(status_code=404, detail="Collection not found")
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Error checking collection: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Error checking collection: {e!s}")
 
     metadatas = []
     if metadatas_json:
@@ -54,18 +53,18 @@ async def documents_create(
         except Exception as e:
             # Catch unexpected errors during metadata processing
             raise HTTPException(
-                status_code=500, detail=f"Error processing metadatas: {str(e)}"
+                status_code=500, detail=f"Error processing metadatas: {e!s}"
             )
     else:
         # If no metadata JSON is provided, create a list of Nones
         metadatas = [None] * len(files)
 
-    all_langchain_docs: List[Document] = []
+    all_langchain_docs: list[Document] = []
     processed_files_count = 0
     failed_files = []
 
     # Pair files with their corresponding metadata
-    for file, metadata in zip(files, metadatas):
+    for file, metadata in zip(files, metadatas, strict=False):
         try:
             # Pass metadata to process_document
             langchain_docs = await process_document(file, metadata=metadata)
@@ -129,12 +128,12 @@ async def documents_create(
         print(f"Error adding documents to vector store: {add_exc}")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to add documents to vector store: {str(add_exc)}",
+            detail=f"Failed to add documents to vector store: {add_exc!s}",
         )
 
 
 @router.get(
-    "/collections/{collection_name}/documents", response_model=List[DocumentResponse]
+    "/collections/{collection_name}/documents", response_model=list[DocumentResponse]
 )
 async def documents_list(
     collection_name: str,
@@ -150,7 +149,7 @@ async def documents_list(
 
 @router.delete(
     "/collections/{collection_name}/documents/{document_id}",
-    response_model=Dict[str, bool],
+    response_model=dict[str, bool],
 )
 async def documents_delete(
     collection_name: str,
@@ -167,7 +166,7 @@ async def documents_delete(
 
 
 @router.post(
-    "/collections/{collection_name}/documents/search", response_model=List[SearchResult]
+    "/collections/{collection_name}/documents/search", response_model=list[SearchResult]
 )
 def documents_search(
     collection_name: str,

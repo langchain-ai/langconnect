@@ -1,3 +1,3 @@
-from langconnect.utils.task_queue import lifespan, add_task_to_queue
+from langconnect.utils.task_queue import add_task_to_queue, lifespan
 
-__all__ = ["lifespan", "add_task_to_queue"]
+__all__ = ["add_task_to_queue", "lifespan"]

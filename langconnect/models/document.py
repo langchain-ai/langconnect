@@ -1,36 +1,37 @@
-from typing import Dict, Optional, Any
+from typing import Any
+
 from pydantic import BaseModel
 
 
 class DocumentCreate(BaseModel):
-    content: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    content: str | None = None
+    metadata: dict[str, Any] | None = None
 
 
 class DocumentUpdate(BaseModel):
-    content: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    content: str | None = None
+    metadata: dict[str, Any] | None = None
 
 
 class DocumentResponse(BaseModel):
     id: str
     collection_id: str
-    content: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
+    content: str | None = None
+    metadata: dict[str, Any] | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
 
 
 class SearchQuery(BaseModel):
     query: str
-    limit: Optional[int] = 10
-    filter: Optional[Dict[str, Any]] = None
+    limit: int | None = 10
+    filter: dict[str, Any] | None = None
 
 
 class SearchResult(BaseModel):
     id: str
     collection_id: str
-    content: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    content: str | None = None
+    metadata: dict[str, Any] | None = None
     similarity: float
-    created_at: Optional[str] = None
+    created_at: str | None = None

@@ -1,10 +1,11 @@
+import json
 import logging
 import os
-import json
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from langconnect.api import collections_router, documents_router, admin_router
+from langconnect.api import admin_router, collections_router, documents_router
 from langconnect.utils import lifespan
 
 # Configure logging

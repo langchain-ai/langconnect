@@ -61,3 +61,67 @@ python_files = ["test_*.py"]
 python_functions = ["test_*"]
 asyncio_mode = "auto"
 
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+  "ALL",
+]
+ignore = [
+  "COM812",
+  "ANN001",
+  "ANN201",
+  "ARG001",
+  "B008",
+  "B904",
+  "BLE001",
+  "C901",
+  "D100",
+  "D101",
+  "D104",
+  "D106",
+  "D205",
+  "E501",
+  "EM101",
+  "EM102",
+  "ERA001",
+  "FAST002",
+  "G004",
+  "G201",
+  "PLR0912",
+  "PLR0915",
+  "PLW0603",
+  "RET504",
+  "RUF006",
+  "S104",
+  "T201",
+  "TC002",
+  "TID252",
+  "TRY003",
+  "TRY004",
+  "TRY201",
+  "TRY300",
+  "TRY301",
+  "TRY401",
+  "UP007",
+  "W291"
+]
+
+
+[tool.ruff.lint.extend-per-file-ignores]
+"tests/**/*.py" = [
+    # at least this three should be fine in tests:
+    "S101", # asserts allowed in tests...
+    "ARG", # Unused function args -> fixtures nevertheless are functionally relevant...
+    "FBT", # Don't care about booleans as positional arguments in tests, e.g. via @pytest.mark.parametrize()
+    "D104",
+    # The below are debateable
+    "PLR2004", # Magic value used in comparison, ...
+    "S311", # Standard pseudo-random generators are not suitable for cryptographic purposes
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+

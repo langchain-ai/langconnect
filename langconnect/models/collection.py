@@ -1,6 +1,7 @@
-from typing import Dict, List, Optional, Any
-from pydantic import BaseModel, Field
 import datetime
+from typing import Any
+
+from pydantic import BaseModel, Field
 
 # =====================
 # Collection Schemas
@@ -11,7 +12,7 @@ class CollectionCreate(BaseModel):
     """Schema for creating a new collection."""
 
     name: str = Field(..., description="The unique name of the collection.")
-    metadata: Dict[str, Any] = Field(
+    metadata: dict[str, Any] = Field(
         default_factory=dict, description="Optional metadata for the collection."
     )
 
@@ -19,8 +20,8 @@ class CollectionCreate(BaseModel):
 class CollectionUpdate(BaseModel):
     """Schema for updating an existing collection."""
 
-    name: Optional[str] = Field(None, description="New name for the collection.")
-    metadata: Optional[Dict[str, Any]] = Field(
+    name: str | None = Field(None, description="New name for the collection.")
+    metadata: dict[str, Any] | None = Field(
         None, description="Updated metadata for the collection."
     )
 
@@ -34,7 +35,7 @@ class CollectionResponse(BaseModel):
         ..., description="The unique identifier (UUID) of the collection in PGVector."
     )
     name: str = Field(..., description="The name of the collection.")
-    metadata: Dict[str, Any] = Field(
+    metadata: dict[str, Any] = Field(
         default_factory=dict, description="Metadata associated with the collection."
     )
 
@@ -49,26 +50,26 @@ class CollectionResponse(BaseModel):
 
 class DocumentBase(BaseModel):
     page_content: str
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class DocumentCreate(DocumentBase):
     collection_id: str
-    embedding: Optional[List[float]] = (
+    embedding: list[float] | None = (
         None  # Embedding can be added during creation or later
     )
 
 
 class DocumentUpdate(BaseModel):
-    page_content: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
-    embedding: Optional[List[float]] = None
+    page_content: str | None = None
+    metadata: dict[str, Any] | None = None
+    embedding: list[float] | None = None
 
 
 class DocumentResponse(DocumentBase):
     id: str
     collection_id: str
-    embedding: Optional[List[float]] = None  # Represent embedding as list of floats
+    embedding: list[float] | None = None  # Represent embedding as list of floats
     created_at: datetime.datetime
     updated_at: datetime.datetime
 
