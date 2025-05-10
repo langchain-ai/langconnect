@@ -5,7 +5,7 @@ from typing import Any
 
 from langconnect.database.connection import get_db_connection, get_vectorstore
 
-logger = logging.getlogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def create_pgvector_collection(

@@ -13,7 +13,7 @@ from langconnect.database.connection import (
 )
 from langconnect.defaults import DEFAULT_EMBEDDINGS
 
-logger = logging.getlogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def add_documents_to_vectorstore(
