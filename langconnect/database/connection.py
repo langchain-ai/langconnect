@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from langconnect.defaults import DEFAULT_COLLECTION_NAME, DEFAULT_EMBEDDINGS
 
-logger = logging.getlogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 POSTGRES_HOST = os.getenv("POSTGRES_HOST")
