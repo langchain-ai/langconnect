@@ -228,6 +228,7 @@ def search_documents_in_vectorstore(
         )
     return formatted_results
 
+
 def record_to_dict(record) -> Optional[Dict[str, Any]]:
     """Converts an asyncpg Record to a dictionary (useful for direct DB access)."""
     if record is None:
