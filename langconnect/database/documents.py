@@ -1,18 +1,15 @@
+import asyncpg
 import json
 import uuid
-from typing import Any, Dict, List, Optional
-
-import asyncpg
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
+from typing import Any, Dict, List, Optional
 
 from langconnect.database.connection import (
     get_vectorstore,
     get_db_connection,
 )
-from ..defaults import DEFAULT_EMBEDDINGS
-
-# --- Database Operations using PGVector ---
+from langconnect.defaults import DEFAULT_EMBEDDINGS
 
 
 def add_documents_to_vectorstore(
@@ -231,8 +228,6 @@ def search_documents_in_vectorstore(
         )
     return formatted_results
 
-
-# --- Helper to convert DB records (if needed elsewhere) ---
 def record_to_dict(record) -> Optional[Dict[str, Any]]:
     """Converts an asyncpg Record to a dictionary (useful for direct DB access)."""
     if record is None:

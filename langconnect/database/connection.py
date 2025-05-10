@@ -9,7 +9,7 @@ from langchain_postgres.vectorstores import PGVector
 from sqlalchemy import create_engine, Engine
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from ..defaults import DEFAULT_EMBEDDINGS, DEFAULT_COLLECTION_NAME
+from langconnect.defaults import DEFAULT_EMBEDDINGS, DEFAULT_COLLECTION_NAME
 
 POSTGRES_HOST = os.getenv("POSTGRES_HOST")
 POSTGRES_PORT = os.getenv("POSTGRES_PORT")

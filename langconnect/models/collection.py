@@ -39,7 +39,9 @@ class CollectionResponse(BaseModel):
     )
 
     class Config:
-        from_attributes = True  # Allows creating model from dict like {'uuid': '...', 'name': '...', 'metadata': {...}}
+        # Allows creating model from dict like
+        # {'uuid': '...', 'name': '...', 'metadata': {...}}
+        from_attributes = True
 
 
 # =====================

@@ -3,7 +3,7 @@ import json
 from typing import Dict, List, Optional, Any
 
 
-from .connection import get_db_connection, get_vectorstore
+from langconnect.connection import get_db_connection, get_vectorstore
 
 
 def create_pgvector_collection(
