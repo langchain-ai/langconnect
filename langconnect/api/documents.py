@@ -163,14 +163,12 @@ async def documents_delete(
     collection_name: str,
     document_id: str,
 ):
-    """Deletes a specific document (chunk) from a collection by its vector store ID."""
+    """Deletes a specific document from a collection by its ID."""
     success = await delete_documents_from_vectorstore(
         user, collection_name, [document_id]
     )
     if not success:
-        raise HTTPException(
-            status_code=500, detail="Failed to delete document from vector store"
-        )
+        raise HTTPException(status_code=500, detail="Failed to delete document.")
 
     return {"success": True}
 
@@ -183,7 +181,7 @@ async def documents_search(
     collection_name: str,
     search_query: SearchQuery,
 ):
-    """Performs semantic search for documents within a specific collection."""
+    """Search for documents within a specific collection."""
     if not search_query.query:
         raise HTTPException(status_code=400, detail="Search query cannot be empty")
 
