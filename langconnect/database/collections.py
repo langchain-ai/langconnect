@@ -2,6 +2,7 @@ import json
 import logging
 from typing import Any, TypedDict
 
+from fastapi import status
 from fastapi.exceptions import HTTPException
 
 from langconnect.auth import AuthenticatedUser
@@ -58,15 +59,19 @@ async def get_collection_details_for_user(
 
 async def create_pgvector_collection(
     user: AuthenticatedUser, collection_name: str, metadata: dict[str, Any]
-) -> None:
+) -> dict[str, Any]:
     """Explicitly creates a collection using PGVector with optional metadata.
 
     Note: This is often not necessary as adding documents implicitly creates it.
     PGVector.create_collection is synchronous, so run in executor.
     """
-    if not isinstance(metadata, dict):
-        raise TypeError(
-            f"Programming error: metadata must be a dict. Got {type(metadata)}"
+    # TODO(Eugene): Remove all the unnecessary requests.
+    collection_info = await get_collection_by_name(user, collection_name)
+    # This is temporary until we lift unique constraint on collection name.
+    if collection_info:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Collection '{collection_name}' already exists.",
         )
 
     # The fields below are stored in the metadata column for now, but they
@@ -77,6 +82,9 @@ async def create_pgvector_collection(
     # The PGVector class will always attempt to get/create a collection when
     # the class is instantiated.
     get_vectorstore(collection_name, collection_metadata=metadata)
+
+    collection_info = await get_collection_by_name(user, collection_name)
+    return collection_info
 
 
 async def list_pgvector_collections(user: AuthenticatedUser) -> list[dict[str, Any]]:

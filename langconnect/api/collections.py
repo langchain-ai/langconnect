@@ -8,7 +8,6 @@ from langconnect.database import (
     create_pgvector_collection,
     delete_pgvector_collection,
     get_collection_by_id,
-    get_collection_by_name,
     list_pgvector_collections,
     update_pgvector_collection,
 )
@@ -27,21 +26,11 @@ async def collections_create(
     user: Annotated[AuthenticatedUser, Depends(resolve_user)],
 ):
     """Creates a new PGVector collection by name with optional metadata."""
-    metadata = collection_data.metadata
-    collection_name = collection_data.name
-    # TODO(Eugene): Remove all the unnecessary requests.
-    collection_info = await get_collection_by_name(user, collection_name)
-    if collection_info:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Collection '{collection_name}' already exists.",
-        )
-    await create_pgvector_collection(user, collection_name, metadata)
-    collection_info = await get_collection_by_name(user, collection_name)
+    collection_info = await create_pgvector_collection(
+        user, collection_data.name, collection_data.metadata
+    )
     if not collection_info:
-        raise HTTPException(
-            status_code=500, detail="Failed to retrieve collection after creation"
-        )
+        raise HTTPException(status_code=500, detail="Failed to create collection")
     return CollectionResponse(**collection_info)
 
 
