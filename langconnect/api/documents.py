@@ -168,7 +168,7 @@ async def documents_delete(
         user, collection_name, [document_id]
     )
     if not success:
-        raise HTTPException(status_code=500, detail="Failed to delete document.")
+        raise HTTPException(status_code=404, detail="Failed to delete document.")
 
     return {"success": True}
 

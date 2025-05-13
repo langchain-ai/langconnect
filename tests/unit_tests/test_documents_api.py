@@ -170,8 +170,7 @@ async def test_documents_in_nonexistent_collection() -> None:
         del_resp = await client.delete(
             "/collections/no_such_col/documents/abcdef", headers=USER_1_HEADERS
         )
-        # Depending on implementation may return 500 or success False
-        assert del_resp.status_code in (404, 500, 200, 204)
+        assert del_resp.status_code == 404
 
         # Try search in missing collection
         search_resp = await client.post(
