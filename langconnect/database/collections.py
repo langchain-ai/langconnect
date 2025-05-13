@@ -2,6 +2,8 @@ import json
 import logging
 from typing import Any, TypedDict
 
+from fastapi.exceptions import HTTPException
+
 from langconnect.auth import AuthenticatedUser
 from langconnect.database.connection import get_db_connection, get_vectorstore
 
@@ -21,14 +23,18 @@ async def assert_ownership_of_collection(
         """
         record = await conn.fetchrow(query, collection_name, user.identity)
         if not record:
-            raise ValueError(
-                f"Collection '{collection_name}' does not exist or you do not own it."
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    f"Collection '{collection_name}' does not exist or "
+                    f"you do not own it."
+                ),
             )
         # Verify that there is at most one record
         if len(record) > 1:
             # This should never occur and denotes a programming error.
-            raise ValueError(
-                f"Multiple collections found with name '{collection_name}'."
+            raise HTTPException(
+                status_code=500,
             )
 
 

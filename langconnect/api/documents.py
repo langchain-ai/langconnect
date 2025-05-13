@@ -98,7 +98,7 @@ async def documents_create(
     # If some files failed but others succeeded, proceed with adding successful ones
     # but maybe inform the user about the failures.
     try:
-        added_ids = add_documents_to_vectorstore(
+        added_ids = await add_documents_to_vectorstore(
             user, collection_name, all_langchain_docs
         )
         if not added_ids:
@@ -178,7 +178,7 @@ async def documents_delete(
 @router.post(
     "/collections/{collection_name}/documents/search", response_model=list[SearchResult]
 )
-def documents_search(
+async def documents_search(
     user: Annotated[AuthenticatedUser, Depends(resolve_user)],
     collection_name: str,
     search_query: SearchQuery,
@@ -187,7 +187,7 @@ def documents_search(
     if not search_query.query:
         raise HTTPException(status_code=400, detail="Search query cannot be empty")
 
-    results = search_documents_in_vectorstore(
+    results = await search_documents_in_vectorstore(
         user,
         collection_name,
         query=search_query.query,

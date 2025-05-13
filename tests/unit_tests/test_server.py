@@ -345,7 +345,6 @@ async def test_ownership() -> None:
         assert r5.status_code == 204
 
 
-@pytest.mark.skip(reason="Have not fixed yet.")
 async def test_documents_create_and_list_and_delete_and_search() -> None:
     """Test creating, listing, deleting, and searching documents."""
     async with get_async_test_client() as client:
@@ -401,15 +400,22 @@ async def test_documents_create_and_list_and_delete_and_search() -> None:
         results = search_resp.json()
         assert isinstance(results, list)
         # Each result should have id, score, text
-        for r in results:
-            assert "id" in r
-            assert "score" in r
-            assert "text" in r
+        assert len(results) == 1
+        assert results[0] == {
+            "id": docs[0]["id"],
+            "score": results[0]["score"],
+            "page_content": "Hello world. This is a test document.",
+            "metadata": {
+                "file_id": docs[0]["metadata"]["file_id"],
+                "source": None,
+            },
+        }
 
         # Delete a document
         doc_id = docs[0]["id"]
         del_resp = await client.delete(
             f"/collections/{collection}/documents/{doc_id}",
+            headers=USER_1_HEADERS,
         )
         assert del_resp.status_code == 200
         assert del_resp.json() == {"success": True}
@@ -417,6 +423,7 @@ async def test_documents_create_and_list_and_delete_and_search() -> None:
         # Delete non-existent document gracefully
         del_resp2 = await client.delete(
             f"/collections/{collection}/documents/{doc_id}",
+            headers=USER_1_HEADERS,
         )
         # Should still return success True or 200/204; here assume 200
         assert del_resp2.status_code in (200, 204)
@@ -466,17 +473,16 @@ async def test_documents_search_empty_query() -> None:
         assert "Search query cannot be empty" in resp.json()["detail"]
 
 
-@pytest.mark.skip(reason="Have not fixed yet.")
 async def test_documents_in_nonexistent_collection() -> None:
     """Test operations on documents in a non-existent collection."""
     async with get_async_test_client() as client:
         # Try listing documents in missing collection
-        list_resp = await client.get(
+        response = await client.get(
             "/collections/no_such_col/documents", headers=USER_1_HEADERS
         )
-        assert list_resp.status_code == 404
+        assert response.status_code == 404
 
-        # Try uploading to missing collection
+        # Try uploading to a non existent collection
         file_content = b"X"
         files = [("files", ("x.txt", file_content, "text/plain"))]
         upload_resp = await client.post(

@@ -18,14 +18,14 @@ from langconnect.database.connection import (
 logger = logging.getLogger(__name__)
 
 
-def add_documents_to_vectorstore(
+async def add_documents_to_vectorstore(
     user: AuthenticatedUser,
     collection_name: str,
     documents: list[Document],
     embeddings: Embeddings = DEFAULT_EMBEDDINGS,
 ) -> list[str]:
     """Adds LangChain documents to the specified PGVector collection."""
-    assert_ownership_of_collection(
+    await assert_ownership_of_collection(
         user=user,
         collection_name=collection_name,
     )
@@ -245,21 +245,19 @@ async def delete_documents_from_vectorstore(
         return False
 
 
-def search_documents_in_vectorstore(
+async def search_documents_in_vectorstore(
     user: AuthenticatedUser,
     collection_name: str,
     query: str,
     limit: int = 4,
-    embeddings: Embeddings = DEFAULT_EMBEDDINGS,
 ) -> list[dict[str, Any]]:
     """Performs semantic similarity search within the specified PGVector collection."""
-    assert_ownership_of_collection(
+    await assert_ownership_of_collection(
         user=user,
         collection_name=collection_name,
     )
     store = get_vectorstore(
         collection_name=collection_name,
-        embeddings=embeddings,
     )
 
     results_with_scores = store.similarity_search_with_score(query, k=limit)
