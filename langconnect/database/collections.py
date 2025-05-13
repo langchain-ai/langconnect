@@ -10,19 +10,30 @@ from langconnect.database.connection import get_db_connection, get_vectorstore
 logger = logging.getLogger(__name__)
 
 
-async def assert_ownership_of_collection(
+class CollectionDetails(TypedDict):
+    """TypedDict for collection details."""
+
+    uuid: str
+    """UUID of the collection."""
+    name: str
+    """Name of the collection."""
+    metadata: dict[str, Any]
+    """Metadata of the collection."""
+
+
+async def get_collection_details_for_user(
     user: AuthenticatedUser,
     collection_id: str,
-) -> None:
-    """Assert that the user owns the collection."""
+) -> CollectionDetails:
+    """Assert collection ownership and return collection details."""
     async with get_db_connection() as conn:
         query = """
-            SELECT uuid
+            SELECT uuid, name, cmetadata
             FROM langchain_pg_collection 
             WHERE uuid = $1 AND cmetadata->>'owner_id' = $2;
         """
-        record = await conn.fetchrow(query, collection_id, user.identity)
-        if not record:
+        records = await conn.fetch(query, collection_id, user.identity)
+        if not records:
             raise HTTPException(
                 status_code=404,
                 detail=(
@@ -30,11 +41,19 @@ async def assert_ownership_of_collection(
                 ),
             )
         # Verify that there is at most one record
-        if len(record) > 1:
+        if len(records) > 1:
             # This should never occur and denotes a programming error.
             raise HTTPException(
                 status_code=500,
             )
+
+        record = records[0]
+
+        return {
+            "uuid": str(record["uuid"]),
+            "name": record["name"],
+            "metadata": json.loads(record["cmetadata"]),
+        }
 
 
 async def create_pgvector_collection(
@@ -101,18 +120,44 @@ async def list_pgvector_collections(user: AuthenticatedUser) -> list[dict[str, A
     return collections
 
 
-class CollectionDetails(TypedDict):
-    """TypedDict for collection details."""
+async def get_collection_by_name(
+    user: AuthenticatedUser,
+    collection_name: str,
+) -> CollectionDetails | None:
+    """Gets collection details (uuid, name, metadata) if it exists, None otherwise."""
+    async with get_db_connection() as conn:
+        query = """
+            SELECT uuid, name, cmetadata 
+            FROM langchain_pg_collection 
+            WHERE name = $1 AND cmetadata->>'owner_id' = $2;
+        """
+        record = await conn.fetchrow(query, collection_name, user.identity)
+        if record:
+            # Handle cmetadata - it can be None, a string 'null', or a JSON string
+            metadata = {}
+            if record["cmetadata"] is not None and record["cmetadata"] != "null":
+                try:
+                    # If it's a JSON string, parse it
+                    if isinstance(record["cmetadata"], str) and record[
+                        "cmetadata"
+                    ].startswith("{"):
+                        metadata = json.loads(record["cmetadata"])
+                    else:
+                        metadata = record["cmetadata"]
+                except Exception as e:
+                    logger.exception(
+                        f"Error parsing metadata in get_pgvector_collection_details: {e}"
+                    )
+                    raise
+            return {
+                "uuid": str(record["uuid"]),
+                "name": record["name"],
+                "metadata": metadata,
+            }
+    return None
 
-    uuid: str
-    """UUID of the collection."""
-    name: str
-    """Name of the collection."""
-    metadata: dict[str, Any]
-    """Metadata of the collection."""
 
-
-async def get_pgvector_collection_details(
+async def get_collection_by_id(
     user: AuthenticatedUser,
     collection_id: str,
 ) -> CollectionDetails | None:
@@ -124,7 +169,6 @@ async def get_pgvector_collection_details(
             WHERE uuid = $1 AND cmetadata->>'owner_id' = $2;
         """
         record = await conn.fetchrow(query, collection_id, user.identity)
-
         if record:
             # Handle cmetadata - it can be None, a string 'null', or a JSON string
             metadata = {}

@@ -5,11 +5,9 @@ from typing import Any, Optional
 
 import asyncpg
 from langchain_core.documents import Document
-from langchain_core.embeddings import Embeddings
 
 from langconnect.auth import AuthenticatedUser
-from langconnect.config import DEFAULT_EMBEDDINGS
-from langconnect.database.collections import assert_ownership_of_collection
+from langconnect.database.collections import get_collection_details_for_user
 from langconnect.database.connection import (
     get_db_connection,
     get_vectorstore,
@@ -21,18 +19,11 @@ logger = logging.getLogger(__name__)
 async def add_documents_to_vectorstore(
     user: AuthenticatedUser,
     collection_id: str,
+    collection_name: str,
     documents: list[Document],
-    embeddings: Embeddings = DEFAULT_EMBEDDINGS,
 ) -> list[str]:
     """Adds LangChain documents to the specified PGVector collection."""
-    await assert_ownership_of_collection(
-        user=user,
-        collection_id=collection_id,
-    )
-    store = get_vectorstore(
-        collection_id=collection_id,
-        embeddings=embeddings,
-    )
+    store = get_vectorstore(collection_name=collection_name)
     added_ids = store.add_documents(documents)
     return added_ids
 
@@ -62,7 +53,7 @@ async def list_documents_in_vectorstore(
             # Get collection with owner check
             collection_query = """
             SELECT uuid FROM langchain_pg_collection 
-            WHERE name = $1 AND cmetadata->>'owner_id' = $2
+            WHERE uuid = $1 AND cmetadata->>'owner_id' = $2
             """
             collection_record = await conn.fetchrow(
                 collection_query,
@@ -125,7 +116,7 @@ async def list_documents_in_vectorstore(
     return documents
 
 
-async def get_document_from_vectorstore(
+async def get_document(
     document_id: str,
     user: AuthenticatedUser = None,
 ) -> Optional[dict[str, Any]]:
@@ -186,7 +177,7 @@ async def delete_documents_from_vectorstore(
             # 1. Get collection UUID with owner check
             collection_query = """
             SELECT uuid FROM langchain_pg_collection 
-            WHERE name = $1 AND cmetadata->>'owner_id' = $2
+            WHERE uuid = $1 AND cmetadata->>'owner_id' = $2
             """
             collection_record = await conn.fetchrow(
                 collection_query,
@@ -252,12 +243,12 @@ async def search_documents_in_vectorstore(
     limit: int = 4,
 ) -> list[dict[str, Any]]:
     """Performs semantic similarity search within the specified PGVector collection."""
-    await assert_ownership_of_collection(
+    collection_details = await get_collection_details_for_user(
         user=user,
         collection_id=collection_id,
     )
     store = get_vectorstore(
-        collection_id=collection_id,
+        collection_name=collection_details["name"],
     )
 
     results_with_scores = store.similarity_search_with_score(query, k=limit)

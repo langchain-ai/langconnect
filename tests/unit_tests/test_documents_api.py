@@ -117,7 +117,7 @@ async def test_documents_create_with_invalid_metadata_json() -> None:
         assert collection_response.status_code == 201
         collection_data = collection_response.json()
         collection_id = collection_data["uuid"]
-        
+
         # Prepare file
         file_content = b"Sample"
         files = [("files", ("a.txt", file_content, "text/plain"))]
@@ -145,7 +145,7 @@ async def test_documents_search_empty_query() -> None:
         assert collection_response.status_code == 201
         collection_data = collection_response.json()
         collection_id = collection_data["uuid"]
-        
+
         # Attempt search with empty query
         resp = await client.post(
             f"/collections/{collection_id}/documents/search",
@@ -160,8 +160,9 @@ async def test_documents_in_nonexistent_collection() -> None:
     """Test operations on documents in a non-existent collection."""
     async with get_async_test_client() as client:
         # Try listing documents in missing collection
+        no_such_collection = "12345678-1234-5678-1234-567812345678"
         response = await client.get(
-            "/collections/no_such_col/documents", headers=USER_1_HEADERS
+            f"/collections/{no_such_collection}/documents", headers=USER_1_HEADERS
         )
         assert response.status_code == 404
 
@@ -169,7 +170,7 @@ async def test_documents_in_nonexistent_collection() -> None:
         file_content = b"X"
         files = [("files", ("x.txt", file_content, "text/plain"))]
         upload_resp = await client.post(
-            "/collections/no_such_col/documents",
+            f"/collections/{no_such_collection}/documents",
             files=files,
             headers=USER_1_HEADERS,
         )
@@ -178,13 +179,14 @@ async def test_documents_in_nonexistent_collection() -> None:
 
         # Try deleting from missing collection/document
         del_resp = await client.delete(
-            "/collections/no_such_col/documents/abcdef", headers=USER_1_HEADERS
+            f"/collections/{no_such_collection}/documents/abcdef",
+            headers=USER_1_HEADERS,
         )
         assert del_resp.status_code == 404
 
         # Try search in missing collection
         search_resp = await client.post(
-            "/collections/no_such_col/documents/search",
+            f"/collections/{no_such_collection}/documents/search",
             json={"query": "foo"},
             headers=USER_1_HEADERS,
         )
@@ -381,8 +383,9 @@ async def test_documents_create_with_non_existent_collection() -> None:
         files = [("files", ("nonexistent.txt", file_content, "text/plain"))]
 
         # Try to create document in a non-existent collection
+        uuid = "12345678-1234-5678-1234-567812345678"
         response = await client.post(
-            "/collections/non_existent_collection/documents",
+            f"/collections/{uuid}/documents",
             files=files,
             headers=USER_1_HEADERS,
         )
