@@ -3,19 +3,19 @@ from contextlib import asynccontextmanager
 
 from httpx import ASGITransport, AsyncClient
 
+from langconnect import config
 from langconnect.database import get_vectorstore
-from langconnect.database.connection import POSTGRES_DB, POSTGRES_HOST
 from langconnect.server import APP
 
 
 def reset_db() -> None:
     """Hacky code to initialize the database. This needs to be fixed."""
-    if POSTGRES_DB != "langchain_test":
+    if config.POSTGRES_DB != "langchain_test":
         raise AssertionError(
             "Attempting to run unit tests with a non-test database. "
             "Please set the database to 'test' before running tests."
         )
-    if POSTGRES_HOST != "localhost":
+    if config.POSTGRES_HOST != "localhost":
         raise AssertionError(
             "Attempting to run unit tests with a non-localhost database. "
             "Please set the host to 'localhost' before running tests."

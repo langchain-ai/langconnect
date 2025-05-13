@@ -1,5 +1,4 @@
 import logging
-import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Any, Optional, Union
@@ -11,16 +10,10 @@ from langchain_postgres.vectorstores import PGVector
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from langconnect.config import DEFAULT_COLLECTION_NAME, DEFAULT_EMBEDDINGS
+from langconnect import config
 
 logger = logging.getLogger(__name__)
 
-
-POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
-POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5432")
-POSTGRES_USER = os.getenv("POSTGRES_USER", "langchain")
-POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "langchain")
-POSTGRES_DB = os.getenv("POSTGRES_DB", "langchain_test")
 
 _pool: asyncpg.Pool | None = None
 
@@ -31,11 +24,11 @@ async def get_db_pool() -> asyncpg.Pool:
     if _pool is None:
         # Use parsed components for asyncpg connection
         _pool = await asyncpg.create_pool(
-            user=POSTGRES_USER,
-            password=POSTGRES_PASSWORD,
-            host=POSTGRES_HOST,
-            port=POSTGRES_PORT,
-            database=POSTGRES_DB,
+            user=config.POSTGRES_USER,
+            password=config.POSTGRES_PASSWORD,
+            host=config.POSTGRES_HOST,
+            port=config.POSTGRES_PORT,
+            database=config.POSTGRES_DB,
         )
         logger.info("Database connection pool created using parsed URL components.")
     return _pool
@@ -61,11 +54,11 @@ async def get_db_connection() -> AsyncGenerator[asyncpg.Connection, None]:
 
 
 def get_vectorstore_engine(
-    host: str = POSTGRES_HOST,
-    port: str = POSTGRES_PORT,
-    user: str = POSTGRES_USER,
-    password: str = POSTGRES_PASSWORD,
-    dbname: str = POSTGRES_DB,
+    host: str = config.POSTGRES_HOST,
+    port: str = config.POSTGRES_PORT,
+    user: str = config.POSTGRES_USER,
+    password: str = config.POSTGRES_PASSWORD,
+    dbname: str = config.POSTGRES_DB,
 ) -> Engine:
     """Creates and returns a sync SQLAlchemy engine for PostgreSQL."""
     connection_string = f"postgresql+psycopg://{user}:{password}@{host}:{port}/{dbname}"
@@ -77,8 +70,8 @@ DBConnection = Union[sqlalchemy.engine.Engine, str]
 
 
 def get_vectorstore(
-    collection_name: str = DEFAULT_COLLECTION_NAME,
-    embeddings: Embeddings = DEFAULT_EMBEDDINGS,
+    collection_name: str = config.DEFAULT_COLLECTION_NAME,
+    embeddings: Embeddings = config.DEFAULT_EMBEDDINGS,
     engine: Optional[Union[DBConnection, Engine, AsyncEngine]] = None,
     collection_metadata: Optional[dict[str, Any]] = None,
 ) -> PGVector:
