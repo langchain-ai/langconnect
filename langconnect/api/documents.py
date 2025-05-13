@@ -10,16 +10,22 @@ from langconnect.auth import AuthenticatedUser, resolve_user
 from langconnect.database import (
     add_documents_to_vectorstore,
     delete_documents_from_vectorstore,
-    get_collection_by_id,
     list_documents_in_vectorstore,
     search_documents_in_vectorstore,
 )
+from langconnect.database.collections import COLLECTIONS
 from langconnect.models import DocumentResponse, SearchQuery, SearchResult
 from langconnect.services import process_document
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["documents"])
+
+
+def get_collection_by_id(
+    user: AuthenticatedUser, collection_id: str
+) -> dict[str, Any] | None:
+    return COLLECTIONS.get(user.identity, str(collection_id))
 
 
 @router.post("/collections/{collection_id}/documents", response_model=dict[str, Any])

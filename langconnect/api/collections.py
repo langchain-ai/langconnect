@@ -4,13 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from langconnect.auth import AuthenticatedUser, resolve_user
-from langconnect.database import (
-    create_pgvector_collection,
-    delete_pgvector_collection,
-    get_collection_by_id,
-    list_pgvector_collections,
-    update_pgvector_collection,
-)
+from langconnect.database.collections import COLLECTIONS
 from langconnect.models import CollectionCreate, CollectionResponse, CollectionUpdate
 
 router = APIRouter(prefix="/collections", tags=["collections"])
@@ -26,8 +20,8 @@ async def collections_create(
     user: Annotated[AuthenticatedUser, Depends(resolve_user)],
 ):
     """Creates a new PGVector collection by name with optional metadata."""
-    collection_info = await create_pgvector_collection(
-        user, collection_data.name, collection_data.metadata
+    collection_info = await COLLECTIONS.create(
+        user.identity, collection_data.name, collection_data.metadata
     )
     if not collection_info:
         raise HTTPException(status_code=500, detail="Failed to create collection")
@@ -37,8 +31,7 @@ async def collections_create(
 @router.get("", response_model=list[CollectionResponse])
 async def collections_list(user: Annotated[AuthenticatedUser, Depends(resolve_user)]):
     """Lists all available PGVector collections (name and UUID)."""
-    collections = await list_pgvector_collections(user)
-    return [CollectionResponse(**c) for c in collections]
+    return [CollectionResponse(**c) for c in COLLECTIONS.list(user.identity)]
 
 
 @router.get("/{collection_id}", response_model=CollectionResponse)
@@ -47,7 +40,7 @@ async def collections_get(
     collection_id: UUID,
 ):
     """Retrieves details (name and UUID) of a specific PGVector collection."""
-    collection = await get_collection_by_id(user, str(collection_id))
+    collection = await COLLECTIONS.get(user, str(collection_id))
     if not collection:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -62,7 +55,7 @@ async def collections_delete(
     collection_id: UUID,
 ):
     """Deletes a specific PGVector collection by name."""
-    await delete_pgvector_collection(user, str(collection_id))
+    await COLLECTIONS.delete(user, str(collection_id))
     return HTTPException(
         status_code=status.HTTP_204_NO_CONTENT,
         detail=f"Collection '{collection_id}' deleted successfully.",
@@ -76,10 +69,9 @@ async def collections_update(
     collection_data: CollectionUpdate,
 ):
     """Updates a specific PGVector collection's name and/or metadata."""
-    # Update the collection
-    updated_collection = await update_pgvector_collection(
+    updated_collection = await COLLECTIONS.update(
         user,
-        collection_id=str(collection_id),
+        str(collection_id),
         new_name=collection_data.name,
         metadata=collection_data.metadata,
     )

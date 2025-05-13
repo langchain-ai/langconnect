@@ -1,11 +1,10 @@
 import json
 import logging
-from typing import Any, TypedDict
+from typing import Any, Optional, TypedDict
 
 from fastapi import status
 from fastapi.exceptions import HTTPException
 
-from langconnect.auth import AuthenticatedUser
 from langconnect.database.connection import get_db_connection, get_vectorstore
 
 logger = logging.getLogger(__name__)
@@ -15,268 +14,202 @@ class CollectionDetails(TypedDict):
     """TypedDict for collection details."""
 
     uuid: str
-    """UUID of the collection."""
     name: str
-    """Name of the collection."""
     metadata: dict[str, Any]
-    """Metadata of the collection."""
 
 
-async def get_collection_details_for_user(
-    user: AuthenticatedUser,
-    collection_id: str,
-) -> CollectionDetails:
-    """Assert collection ownership and return collection details."""
-    async with get_db_connection() as conn:
-        query = """
-            SELECT uuid, name, cmetadata
-            FROM langchain_pg_collection 
-            WHERE uuid = $1 AND cmetadata->>'owner_id' = $2;
+class Collections:
+    """Manages pgvector-backed collections, with user_id passed at runtime.
+    """
+
+    @staticmethod
+    def _parse_metadata(raw: Any) -> dict[str, Any]:
+        """Normalize JSONB/text metadata into a Python dict."""
+        if raw is None or raw == "null":
+            return {}
+        if isinstance(raw, str):
+            try:
+                return json.loads(raw)
+            except json.JSONDecodeError:
+                logger.exception("Failed to parse metadata JSON: %r", raw)
+                return {}
+        if isinstance(raw, dict):
+            return raw
+        return {}
+
+    async def list(
+        self,
+        user_id: str,
+    ) -> list[CollectionDetails]:
+        """List all collections owned by the given user, ordered by name."""
+        async with get_db_connection() as conn:
+            records = await conn.fetch(
+                """
+                SELECT uuid, name, cmetadata
+                  FROM langchain_pg_collection
+                 WHERE cmetadata->>'owner_id' = $1
+              ORDER BY name;
+                """,
+                user_id,
+            )
+        return [
+            {
+                "uuid": str(r["uuid"]),
+                "name": r["name"],
+                "metadata": self._parse_metadata(r["cmetadata"]),
+            }
+            for r in records
+        ]
+
+    async def get(
+        self,
+        user_id: str,
+        collection_id: str,
+    ) -> CollectionDetails | None:
+        """Fetch a single collection by UUID, ensuring the user owns it."""
+        async with get_db_connection() as conn:
+            rec = await conn.fetchrow(
+                """
+                SELECT uuid, name, cmetadata
+                  FROM langchain_pg_collection
+                 WHERE uuid = $1
+                   AND cmetadata->>'owner_id' = $2;
+                """,
+                collection_id,
+                user_id,
+            )
+        if not rec:
+            return None
+        return {
+            "uuid": str(rec["uuid"]),
+            "name": rec["name"],
+            "metadata": self._parse_metadata(rec["cmetadata"]),
+        }
+
+    async def create(
+        self,
+        user_id: str,
+        collection_name: str,
+        metadata: Optional[dict[str, Any]] = None,
+    ) -> CollectionDetails:
+        """Create a new collection.
+        Raises 409 if a collection with that name already exists for this user.
         """
-        records = await conn.fetch(query, collection_id, user.identity)
-        if not records:
+        # check for existing name
+        existing = await self._get_by_name(user_id, collection_name)
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Collection '{collection_name}' already exists.",
+            )
+
+        metadata = metadata.copy() if metadata else {}
+        metadata["owner_id"] = user_id
+
+        # triggers PGVector to create both the vectorstore and DB entry
+        get_vectorstore(collection_name, collection_metadata=metadata)
+
+        # fetch the newly created one
+        created = await self._get_by_name(user_id, collection_name)
+        assert created, "Failed to create collection"
+        return created
+
+    async def update(
+        self,
+        user_id: str,
+        collection_id: str,
+        new_name: Optional[str] = None,
+        metadata: Optional[dict[str, Any]] = None,
+    ) -> CollectionDetails:
+        """Rename and/or repopulate metadata of an existing collection.
+        Raises 404 if no such collection.
+        """
+        if metadata is not None:
+            metadata = metadata.copy()
+            metadata["owner_id"] = user_id
+
+        metadata_json = json.dumps(metadata) if metadata is not None else None
+
+        async with get_db_connection() as conn:
+            rec = await conn.fetchrow(
+                """
+                UPDATE langchain_pg_collection
+                   SET name      = COALESCE($1, name),
+                       cmetadata = COALESCE($2::json, cmetadata)
+                 WHERE uuid = $3
+                   AND cmetadata->>'owner_id' = $4
+              RETURNING uuid, name, cmetadata;
+                """,
+                new_name,
+                metadata_json,
+                collection_id,
+                user_id,
+            )
+
+        if not rec:
             raise HTTPException(
                 status_code=404,
-                detail=(
-                    f"Collection '{collection_id}' does not exist or you do not own it."
-                ),
+                detail=f"Collection '{collection_id}' not found or not owned by you.",
             )
-        # Verify that there is at most one record
-        if len(records) > 1:
-            # This should never occur and denotes a programming error.
-            raise HTTPException(
-                status_code=500,
-            )
-
-        record = records[0]
 
         return {
-            "uuid": str(record["uuid"]),
-            "name": record["name"],
-            "metadata": json.loads(record["cmetadata"]),
+            "uuid": str(rec["uuid"]),
+            "name": rec["name"],
+            "metadata": self._parse_metadata(rec["cmetadata"]),
+        }
+
+    async def delete(
+        self,
+        user_id: str,
+        collection_id: str,
+    ) -> int:
+        """Delete a collection by UUID.
+        Returns number of rows deleted (1).
+        Raises 404 if no such collection.
+        """
+        async with get_db_connection() as conn:
+            result = await conn.execute(
+                """
+                DELETE FROM langchain_pg_collection
+                 WHERE uuid = $1
+                   AND cmetadata->>'owner_id' = $2;
+                """,
+                collection_id,
+                user_id,
+            )
+        count = int(result.split()[-1])
+        if count == 0:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Collection '{collection_id}' not found or not owned by you.",
+            )
+        return count
+
+    async def _get_by_name(
+        self,
+        user_id: str,
+        collection_name: str,
+    ) -> Optional[CollectionDetails]:
+        """Return details if a named collection exists, else None."""
+        async with get_db_connection() as conn:
+            rec = await conn.fetchrow(
+                """
+                SELECT uuid, name, cmetadata
+                  FROM langchain_pg_collection
+                 WHERE name = $1
+                   AND cmetadata->>'owner_id' = $2;
+                """,
+                collection_name,
+                user_id,
+            )
+        if not rec:
+            return None
+        return {
+            "uuid": str(rec["uuid"]),
+            "name": rec["name"],
+            "metadata": self._parse_metadata(rec["cmetadata"]),
         }
 
 
-async def create_pgvector_collection(
-    user: AuthenticatedUser, collection_name: str, metadata: dict[str, Any]
-) -> dict[str, Any]:
-    """Explicitly creates a collection using PGVector with optional metadata.
-
-    Note: This is often not necessary as adding documents implicitly creates it.
-    PGVector.create_collection is synchronous, so run in executor.
-    """
-    # TODO(Eugene): Remove all the unnecessary requests.
-    collection_info = await get_collection_by_name(user, collection_name)
-    # This is temporary until we lift unique constraint on collection name.
-    if collection_info:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Collection '{collection_name}' already exists.",
-        )
-
-    # The fields below are stored in the metadata column for now, but they
-    # should be stored in separate columns.
-    metadata["owner_id"] = user.identity
-
-    # Calling this will create the collection w/ metadata in the database.
-    # The PGVector class will always attempt to get/create a collection when
-    # the class is instantiated.
-    get_vectorstore(collection_name, collection_metadata=metadata)
-
-    collection_info = await get_collection_by_name(user, collection_name)
-    return collection_info
-
-
-async def list_pgvector_collections(user: AuthenticatedUser) -> list[dict[str, Any]]:
-    """Lists all collections directly from the langchain_pg_collection table.
-
-    Filters collections by matching the usowner_ider_id in the cmetadata JSONB field with the authenticated user's identity.
-    """
-    collections = []
-    async with get_db_connection() as conn:
-        query = """
-            SELECT uuid, name, cmetadata
-            FROM langchain_pg_collection 
-            WHERE cmetadata->>'owner_id' = $1
-            ORDER BY name;
-        """
-        records = await conn.fetch(query, user.identity)
-        for record in records:
-            # Handle cmetadata - it can be None, a string 'null', or a JSON string
-            metadata = {}
-            if record["cmetadata"] is not None and record["cmetadata"] != "null":
-                try:
-                    # If it's a JSON string, parse it
-                    if isinstance(record["cmetadata"], str) and record[
-                        "cmetadata"
-                    ].startswith("{"):
-                        metadata = json.loads(record["cmetadata"])
-                    else:
-                        metadata = record["cmetadata"]
-                except Exception as e:
-                    logger.exception(
-                        f"Error parsing metadata in list_pgvector_collections: {e}"
-                    )
-                    # If parsing fails, use empty dict
-
-            collection = {
-                "uuid": str(record["uuid"]),
-                "name": record["name"],
-                "metadata": metadata,
-            }
-            collections.append(collection)
-    return collections
-
-
-async def get_collection_by_name(
-    user: AuthenticatedUser,
-    collection_name: str,
-) -> CollectionDetails | None:
-    """Gets collection details (uuid, name, metadata) if it exists, None otherwise."""
-    async with get_db_connection() as conn:
-        query = """
-            SELECT uuid, name, cmetadata 
-            FROM langchain_pg_collection 
-            WHERE name = $1 AND cmetadata->>'owner_id' = $2;
-        """
-        record = await conn.fetchrow(query, collection_name, user.identity)
-        if record:
-            # Handle cmetadata - it can be None, a string 'null', or a JSON string
-            metadata = {}
-            if record["cmetadata"] is not None and record["cmetadata"] != "null":
-                try:
-                    # If it's a JSON string, parse it
-                    if isinstance(record["cmetadata"], str) and record[
-                        "cmetadata"
-                    ].startswith("{"):
-                        metadata = json.loads(record["cmetadata"])
-                    else:
-                        metadata = record["cmetadata"]
-                except Exception as e:
-                    logger.exception(
-                        f"Error parsing metadata in get_pgvector_collection_details: {e}"
-                    )
-                    raise
-            return {
-                "uuid": str(record["uuid"]),
-                "name": record["name"],
-                "metadata": metadata,
-            }
-    return None
-
-
-async def get_collection_by_id(
-    user: AuthenticatedUser,
-    collection_id: str,
-) -> CollectionDetails | None:
-    """Gets collection details (uuid, name, metadata) if it exists, None otherwise."""
-    async with get_db_connection() as conn:
-        query = """
-            SELECT uuid, name, cmetadata 
-            FROM langchain_pg_collection 
-            WHERE uuid = $1 AND cmetadata->>'owner_id' = $2;
-        """
-        record = await conn.fetchrow(query, collection_id, user.identity)
-        if record:
-            # Handle cmetadata - it can be None, a string 'null', or a JSON string
-            metadata = {}
-            if record["cmetadata"] is not None and record["cmetadata"] != "null":
-                try:
-                    # If it's a JSON string, parse it
-                    if isinstance(record["cmetadata"], str) and record[
-                        "cmetadata"
-                    ].startswith("{"):
-                        metadata = json.loads(record["cmetadata"])
-                    else:
-                        metadata = record["cmetadata"]
-                except Exception as e:
-                    logger.exception(
-                        f"Error parsing metadata in get_pgvector_collection_details: {e}"
-                    )
-                    raise
-            return {
-                "uuid": str(record["uuid"]),
-                "name": record["name"],
-                "metadata": metadata,
-            }
-    return None
-
-
-async def delete_pgvector_collection(
-    user: AuthenticatedUser, collection_id: str
-) -> int:
-    """Deletes a collection using PGVector.
-
-    Return the number of rows deleted from the collections table.
-    """
-    async with get_db_connection() as conn:
-        query = """
-            DELETE FROM langchain_pg_collection 
-            WHERE uuid = $1 AND cmetadata->>'owner_id' = $2;
-        """
-        results = await conn.execute(query, collection_id, user.identity)
-        if not results.startswith("DELETE"):
-            raise AssertionError(
-                f"Error deleting collection '{collection_id}': {results}"
-            )
-        num_deleted = results.split(" ")[1]
-        return num_deleted
-
-
-async def update_pgvector_collection(
-    user: AuthenticatedUser,
-    collection_id: str,
-    new_name: str | None = None,
-    metadata: dict[str, Any] | None = None,
-) -> dict[str, Any] | None:
-    """Atomically update a collection's name and/or metadata in one DB call.
-
-    - If `new_name` is None, the name is left unchanged.
-    - If `metadata` is None, the JSON metadata column is left untouched.
-    - Otherwise, cmetadata is replaced wholesale with the provided JSON.
-    Returns the updated collection details, or None if no match.
-    """
-    if metadata is not None:
-        metadata["owner_id"] = user.identity  # Ensure owner_id is set
-    # Prepare the JSON blob, or None
-    metadata_json = json.dumps(metadata) if metadata is not None else None
-
-    async with get_db_connection() as conn:
-        query = """
-            UPDATE langchain_pg_collection
-            SET
-                name      = COALESCE($1, name),
-                cmetadata = COALESCE($2::json, cmetadata)
-            WHERE
-                uuid = $3
-              AND cmetadata->>'owner_id' = $4
-            RETURNING uuid, name, cmetadata;
-        """
-        record = await conn.fetchrow(
-            query,
-            new_name,
-            metadata_json,
-            collection_id,
-            user.identity,
-        )
-
-    if not record:
-        return None
-
-    # Parse returned cmetadata into a Python dict
-    updated_metadata: dict[str, Any] = {}
-    raw = record["cmetadata"]
-    if raw and raw != "null":
-        try:
-            if isinstance(raw, str) and raw.startswith("{"):
-                updated_metadata = json.loads(raw)
-            else:
-                updated_metadata = raw  # already a dict
-        except Exception as e:
-            logger.exception(f"Failed to parse updated metadata: {e}")
-
-    return {
-        "uuid": str(record["uuid"]),
-        "name": record["name"],
-        "metadata": updated_metadata,
-    }
+# Singleton collections object.
+COLLECTIONS = Collections()
