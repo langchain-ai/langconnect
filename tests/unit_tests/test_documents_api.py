@@ -229,8 +229,7 @@ async def test_documents_create_with_valid_text_file_and_metadata() -> None:
         )
         assert list_response.status_code == 200
         documents = list_response.json()
-        assert len(documents) > 0
-        assert any("metadata_test.txt" in str(doc) for doc in documents)
+        assert len(documents) == 1
 
         # Verify metadata was attached
         doc = documents[0]
@@ -239,7 +238,7 @@ async def test_documents_create_with_valid_text_file_and_metadata() -> None:
         # The file_id will be a new UUID, so we can't check the exact value
 
 
-async def test_documents_create_with_valid_text_file_without_metadata():
+async def test_documents_create_with_valid_text_file_without_metadata() -> None:
     """Test creating documents with a valid text file without metadata."""
     async with get_async_test_client() as client:
         # Create a collection first
@@ -281,7 +280,7 @@ async def test_documents_create_with_valid_text_file_without_metadata():
         assert documents[0]["content"] == "This is a test document without metadata."
 
 
-async def test_documents_create_with_empty_file():
+async def test_documents_create_with_empty_file() -> None:
     """Test creating documents with an empty file."""
     async with get_async_test_client() as client:
         # Create a collection first
@@ -309,7 +308,7 @@ async def test_documents_create_with_empty_file():
         assert "Failed to process any documents" in data["detail"]
 
 
-async def test_documents_create_with_invalid_metadata_format():
+async def test_documents_create_with_invalid_metadata_format() -> None:
     """Test creating documents with invalid metadata format."""
     async with get_async_test_client() as client:
         # Create a collection first
@@ -353,7 +352,7 @@ async def test_documents_create_with_invalid_metadata_format():
         assert "Metadatas must be a list" in data["detail"]
 
 
-async def test_documents_create_with_non_existent_collection():
+async def test_documents_create_with_non_existent_collection() -> None:
     """Test creating documents in a non-existent collection."""
     async with get_async_test_client() as client:
         # Prepare a text file with content
