@@ -482,11 +482,14 @@ async def test_documents_create_ownership_validation():
     async with get_async_test_client() as client:
         # Create a collection as USER_1
         collection_name = "doc_test_ownership"
-        await client.post(
+        collection_response = await client.post(
             "/collections",
             json={"name": collection_name, "metadata": {}},
             headers=USER_1_HEADERS,
         )
+        assert collection_response.status_code == 201
+        collection_data = collection_response.json()
+        collection_id = collection_data["uuid"]
 
         # Prepare a file
         file_content = b"This is a test document for ownership validation."
@@ -494,7 +497,7 @@ async def test_documents_create_ownership_validation():
 
         # Try to create document as USER_2
         response = await client.post(
-            f"/collections/{collection_name}/documents",
+            f"/collections/{collection_id}/documents",
             files=files,
             headers=USER_2_HEADERS,
         )
