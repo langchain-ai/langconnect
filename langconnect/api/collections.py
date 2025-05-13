@@ -25,15 +25,8 @@ async def collections_create(
     user: Annotated[AuthenticatedUser, Depends(resolve_user)],
 ):
     """Creates a new PGVector collection by name with optional metadata."""
-    collection_name = collection_data.name
     metadata = collection_data.metadata
-    # TODO(Eugene): Change into a single database call.
-    existing = await get_pgvector_collection_details(user, collection_name)
-    if existing:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Collection '{collection_name}' already exists.",
-        )
+    collection_name = collection_data.name
     await create_pgvector_collection(user, collection_name, metadata)
     created_collection = await get_pgvector_collection_details(user, collection_name)
     if not created_collection:
@@ -50,45 +43,45 @@ async def collections_list(user: Annotated[AuthenticatedUser, Depends(resolve_us
     return [CollectionResponse(**c) for c in collections]
 
 
-@router.get("/{collection_name}", response_model=CollectionResponse)
+@router.get("/{collection_id}", response_model=CollectionResponse)
 async def collections_get(
     user: Annotated[AuthenticatedUser, Depends(resolve_user)],
-    collection_name: str,
+    collection_id: str,
 ):
     """Retrieves details (name and UUID) of a specific PGVector collection."""
-    collection = await get_pgvector_collection_details(user, collection_name)
+    collection = await get_pgvector_collection_details(user, collection_id)
     if not collection:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Collection '{collection_name}' not found",
+            detail=f"Collection '{collection_id}' not found",
         )
     return CollectionResponse(**collection)
 
 
-@router.delete("/{collection_name}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{collection_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def collections_delete(
     user: Annotated[AuthenticatedUser, Depends(resolve_user)],
-    collection_name: str,
+    collection_id: str,
 ):
     """Deletes a specific PGVector collection by name."""
-    await delete_pgvector_collection(user, collection_name)
+    await delete_pgvector_collection(user, collection_id)
     return HTTPException(
         status_code=status.HTTP_204_NO_CONTENT,
-        detail=f"Collection '{collection_name}' deleted successfully.",
+        detail=f"Collection '{collection_id}' deleted successfully.",
     )
 
 
-@router.patch("/{collection_name}", response_model=CollectionResponse)
+@router.patch("/{collection_id}", response_model=CollectionResponse)
 async def collections_update(
     user: Annotated[AuthenticatedUser, Depends(resolve_user)],
-    collection_name: str,
+    collection_id: str,
     collection_data: CollectionUpdate,
 ):
     """Updates a specific PGVector collection's name and/or metadata."""
     # Update the collection
     updated_collection = await update_pgvector_collection(
         user,
-        collection_name=collection_name,
+        collection_id=collection_id,
         new_name=collection_data.name,
         metadata=collection_data.metadata,
     )
@@ -96,7 +89,7 @@ async def collections_update(
     if not updated_collection:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Failed to update collection '{collection_name}'",
+            detail=f"Failed to update collection '{collection_id}'",
         )
 
     return CollectionResponse(**updated_collection)

@@ -39,9 +39,9 @@ async def test_create_and_get_collection() -> None:
         assert data["name"] == "test_collection"
         assert isinstance(UUID(data["uuid"]), UUID)
 
-        # Get collection by name
+        # Get collection by ID
         get_response = await client.get(
-            f"/collections/{data['name']}", headers=USER_1_HEADERS
+            f"/collections/{data['uuid']}", headers=USER_1_HEADERS
         )
         assert get_response.status_code == 200
         assert get_response.json()["uuid"] == data["uuid"]
@@ -128,16 +128,23 @@ async def test_delete_collection_and_nonexistent() -> None:
         r1 = await client.post("/collections", json=payload, headers=USER_1_HEADERS)
         assert r1.status_code == 201
 
-        # delete it
-        r2 = await client.delete("/collections/to_delete", headers=USER_1_HEADERS)
+        # Get the UUID first
+        get_collection = await client.get("/collections", headers=USER_1_HEADERS)
+        assert get_collection.status_code == 200
+        collections = get_collection.json()
+        collection_id = next((c["uuid"] for c in collections if c["name"] == "to_delete"), None)
+        assert collection_id is not None
+        
+        # delete it by ID
+        r2 = await client.delete(f"/collections/{collection_id}", headers=USER_1_HEADERS)
         assert r2.status_code == 204
 
-        # Try to get it again
-        r3 = await client.get("/collections/to_delete", headers=USER_1_HEADERS)
+        # Try to get it again by ID
+        r3 = await client.get(f"/collections/{collection_id}", headers=USER_1_HEADERS)
         assert r3.status_code == 404
 
         # Deletion is idempotent
-        r4 = await client.delete("/collections/to_delete", headers=USER_1_HEADERS)
+        r4 = await client.delete(f"/collections/{collection_id}", headers=USER_1_HEADERS)
         assert r4.status_code == 204
 
 
@@ -157,9 +164,16 @@ async def test_patch_collection() -> None:
             },
         }
 
-        # update metadata
+        # Get the UUID for colA
+        get_collection = await client.get("/collections", headers=USER_1_HEADERS)
+        assert get_collection.status_code == 200
+        collections = get_collection.json()
+        collection_id = next((c["uuid"] for c in collections if c["name"] == "colA"), None)
+        assert collection_id is not None
+        
+        # update metadata using the UUID
         r2 = await client.patch(
-            "/collections/colA",
+            f"/collections/{collection_id}",
             json={"metadata": {"a": 2}},
             headers=USER_1_HEADERS,
         )
@@ -192,17 +206,24 @@ async def test_update_collection_name_and_metadata() -> None:
             headers=USER_1_HEADERS,
         )
 
+        # Get the UUID for colA
+        get_collection = await client.get("/collections", headers=USER_1_HEADERS)
+        assert get_collection.status_code == 200
+        collections = get_collection.json()
+        colA_id = next((c["uuid"] for c in collections if c["name"] == "colA"), None)
+        assert colA_id is not None
+        
         # try renaming colA to colB (conflict)
         conflict = await client.patch(
-            "/collections/colA",
+            f"/collections/{colA_id}",
             json={"name": "colB"},
             headers=USER_1_HEADERS,
         )
         assert conflict.status_code == 409
 
-        # rename colA to colC with new metadata
+        # rename colA to colC with new metadata (using the UUID we got earlier)
         update = await client.patch(
-            "/collections/colA",
+            f"/collections/{colA_id}",
             json={"name": "colC", "metadata": {"x": "y"}},
             headers=USER_1_HEADERS,
         )
@@ -213,17 +234,22 @@ async def test_update_collection_name_and_metadata() -> None:
             "name": "colC",
             "metadata": {"x": "y"},
         }
-        # ensure old name is gone
-        get_old = await client.get("/collections/colA")
+        # ensure old name is gone when querying by old name as ID
+        get_old = await client.get(f"/collections/colA")
         assert get_old.status_code == 404
-        # ensure new name works
-        get_new = await client.get("/collections/colC")
+        # ensure we can get by the ID
+        get_by_id = await client.get(f"/collections/{colA_id}", headers=USER_1_HEADERS)
+        assert get_by_id.status_code == 200
+        # the ID should remain the same even though name changed
+        assert get_by_id.json()["uuid"] == colA_id
+        assert get_by_id.json()["name"] == "colC"
         assert get_new.status_code == 200
 
-        # update metadata only on colC
+        # update metadata only on colC using the same ID
         meta_update = await client.patch(
-            "/collections/colC",
+            f"/collections/{colA_id}",
             json={"metadata": {"foo": "bar"}},
+            headers=USER_1_HEADERS,
         )
         assert meta_update.status_code == 200
         assert meta_update.json() == {
@@ -279,12 +305,19 @@ async def test_ownership() -> None:
         r = await client.post("/collections", json=payload, headers=USER_1_HEADERS)
         assert r.status_code == 201
 
-        # user 2 tries to get it
-        r2 = await client.get("/collections/owned_by_user1", headers=USER_2_HEADERS)
+        # Get the UUID of the collection
+        get_response = await client.get("/collections", headers=USER_1_HEADERS)
+        assert get_response.status_code == 200
+        collections = get_response.json()
+        collection_id = next((c["uuid"] for c in collections if c["name"] == "owned_by_user1"), None)
+        assert collection_id is not None
+        
+        # user 2 tries to get it by ID
+        r2 = await client.get(f"/collections/{collection_id}", headers=USER_2_HEADERS)
         assert r2.status_code == 404
 
         # Always ack with 204 for idempotency
-        r3 = await client.delete("/collections/owned_by_user1", headers=USER_2_HEADERS)
+        r3 = await client.delete(f"/collections/{collection_id}", headers=USER_2_HEADERS)
         assert r3.status_code == 204
 
         # Try listing collections as user 2
@@ -294,12 +327,12 @@ async def test_ownership() -> None:
 
         # Try patching the collection as user 2
         r4 = await client.patch(
-            "/collections/owned_by_user1",
+            f"/collections/{collection_id}",
             json={"name": "new_name"},
             headers=USER_2_HEADERS,
         )
         assert r4.status_code == 404
 
         # user 1 can delete it
-        r5 = await client.delete("/collections/owned_by_user1", headers=USER_1_HEADERS)
+        r5 = await client.delete(f"/collections/{collection_id}", headers=USER_1_HEADERS)
         assert r5.status_code == 204

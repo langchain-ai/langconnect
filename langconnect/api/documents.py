@@ -21,15 +21,15 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["documents"])
 
 
-@router.post("/collections/{collection_name}/documents", response_model=dict[str, Any])
+@router.post("/collections/{collection_id}/documents", response_model=dict[str, Any])
 async def documents_create(
     user: Annotated[AuthenticatedUser, Depends(resolve_user)],
-    collection_name: str,
+    collection_id: str,
     files: list[UploadFile] = File(...),
     metadatas_json: str | None = Form(None),
 ):
     """Processes and indexes (adds) new document files with optional metadata."""
-    collection = await get_pgvector_collection_details(user, collection_name)
+    collection = await get_pgvector_collection_details(user, collection_id)
     if not collection:
         raise HTTPException(status_code=404, detail="Collection not found")
 
@@ -99,7 +99,7 @@ async def documents_create(
     # but maybe inform the user about the failures.
     try:
         added_ids = await add_documents_to_vectorstore(
-            user, collection_name, all_langchain_docs
+            user, collection_id, all_langchain_docs
         )
         if not added_ids:
             # This might indicate a problem with the vector store itself
@@ -137,17 +137,17 @@ async def documents_create(
 
 
 @router.get(
-    "/collections/{collection_name}/documents", response_model=list[DocumentResponse]
+    "/collections/{collection_id}/documents", response_model=list[DocumentResponse]
 )
 async def documents_list(
     user: Annotated[AuthenticatedUser, Depends(resolve_user)],
-    collection_name: str,
+    collection_id: str,
     limit: int = Query(10, ge=1, le=100),
     offset: int = Query(0, ge=0),
 ):
     """Lists documents within a specific collection."""
     results = await list_documents_in_vectorstore(
-        user, collection_name, limit=limit, offset=offset
+        user, collection_id, limit=limit, offset=offset
     )
     if results is None:
         raise HTTPException(status_code=404, detail="No such collection.")
@@ -155,17 +155,17 @@ async def documents_list(
 
 
 @router.delete(
-    "/collections/{collection_name}/documents/{document_id}",
+    "/collections/{collection_id}/documents/{document_id}",
     response_model=dict[str, bool],
 )
 async def documents_delete(
     user: Annotated[AuthenticatedUser, Depends(resolve_user)],
-    collection_name: str,
+    collection_id: str,
     document_id: str,
 ):
     """Deletes a specific document from a collection by its ID."""
     success = await delete_documents_from_vectorstore(
-        user, collection_name, [document_id]
+        user, collection_id, [document_id]
     )
     if not success:
         raise HTTPException(status_code=404, detail="Failed to delete document.")
@@ -174,11 +174,11 @@ async def documents_delete(
 
 
 @router.post(
-    "/collections/{collection_name}/documents/search", response_model=list[SearchResult]
+    "/collections/{collection_id}/documents/search", response_model=list[SearchResult]
 )
 async def documents_search(
     user: Annotated[AuthenticatedUser, Depends(resolve_user)],
-    collection_name: str,
+    collection_id: str,
     search_query: SearchQuery,
 ):
     """Search for documents within a specific collection."""
@@ -187,7 +187,7 @@ async def documents_search(
 
     results = await search_documents_in_vectorstore(
         user,
-        collection_name,
+        collection_id,
         query=search_query.query,
         limit=search_query.limit or 10,
     )

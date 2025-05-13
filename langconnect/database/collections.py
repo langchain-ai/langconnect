@@ -12,22 +12,21 @@ logger = logging.getLogger(__name__)
 
 async def assert_ownership_of_collection(
     user: AuthenticatedUser,
-    collection_name: str,
+    collection_id: str,
 ) -> None:
     """Assert that the user owns the collection."""
     async with get_db_connection() as conn:
         query = """
             SELECT uuid
             FROM langchain_pg_collection 
-            WHERE name = $1 AND cmetadata->>'owner_id' = $2;
+            WHERE uuid = $1 AND cmetadata->>'owner_id' = $2;
         """
-        record = await conn.fetchrow(query, collection_name, user.identity)
+        record = await conn.fetchrow(query, collection_id, user.identity)
         if not record:
             raise HTTPException(
                 status_code=404,
                 detail=(
-                    f"Collection '{collection_name}' does not exist or "
-                    f"you do not own it."
+                    f"Collection '{collection_id}' does not exist or you do not own it."
                 ),
             )
         # Verify that there is at most one record
@@ -115,16 +114,16 @@ class CollectionDetails(TypedDict):
 
 async def get_pgvector_collection_details(
     user: AuthenticatedUser,
-    collection_name: str,
+    collection_id: str,
 ) -> CollectionDetails | None:
     """Gets collection details (uuid, name, metadata) if it exists, None otherwise."""
     async with get_db_connection() as conn:
         query = """
             SELECT uuid, name, cmetadata 
             FROM langchain_pg_collection 
-            WHERE name = $1 AND cmetadata->>'owner_id' = $2;
+            WHERE uuid = $1 AND cmetadata->>'owner_id' = $2;
         """
-        record = await conn.fetchrow(query, collection_name, user.identity)
+        record = await conn.fetchrow(query, collection_id, user.identity)
 
         if record:
             # Handle cmetadata - it can be None, a string 'null', or a JSON string
@@ -152,7 +151,7 @@ async def get_pgvector_collection_details(
 
 
 async def delete_pgvector_collection(
-    user: AuthenticatedUser, collection_name: str
+    user: AuthenticatedUser, collection_id: str
 ) -> int:
     """Deletes a collection using PGVector.
 
@@ -161,12 +160,12 @@ async def delete_pgvector_collection(
     async with get_db_connection() as conn:
         query = """
             DELETE FROM langchain_pg_collection 
-            WHERE name = $1 AND cmetadata->>'owner_id' = $2;
+            WHERE uuid = $1 AND cmetadata->>'owner_id' = $2;
         """
-        results = await conn.execute(query, collection_name, user.identity)
+        results = await conn.execute(query, collection_id, user.identity)
         if not results.startswith("DELETE"):
             raise AssertionError(
-                f"Error deleting collection '{collection_name}': {results}"
+                f"Error deleting collection '{collection_id}': {results}"
             )
         num_deleted = results.split(" ")[1]
         return num_deleted
@@ -174,7 +173,7 @@ async def delete_pgvector_collection(
 
 async def update_pgvector_collection(
     user: AuthenticatedUser,
-    collection_name: str,
+    collection_id: str,
     new_name: str | None = None,
     metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
@@ -197,7 +196,7 @@ async def update_pgvector_collection(
                 name      = COALESCE($1, name),
                 cmetadata = COALESCE($2::json, cmetadata)
             WHERE
-                name = $3
+                uuid = $3
               AND cmetadata->>'owner_id' = $4
             RETURNING uuid, name, cmetadata;
         """
@@ -205,7 +204,7 @@ async def update_pgvector_collection(
             query,
             new_name,
             metadata_json,
-            collection_name,
+            collection_id,
             user.identity,
         )
 
