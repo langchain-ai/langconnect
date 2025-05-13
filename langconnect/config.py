@@ -4,7 +4,6 @@ from starlette.config import Config, undefined
 env = Config()
 
 IS_TESTING = env("IS_TESTING", cast=str, default="").lower() == "true"
-IS_TESTING = True
 
 if IS_TESTING:
     SUPABASE_URL = ""
