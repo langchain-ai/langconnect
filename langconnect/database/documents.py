@@ -4,10 +4,11 @@ import uuid
 from typing import Any, Optional
 
 import asyncpg
+from fastapi.exceptions import HTTPException
 from langchain_core.documents import Document
 
 from langconnect.auth import AuthenticatedUser
-from langconnect.database.collections import get_collection_details_for_user
+from langconnect.database.collections import COLLECTIONS
 from langconnect.database.connection import (
     get_db_connection,
     get_vectorstore,
@@ -243,10 +244,15 @@ async def search_documents_in_vectorstore(
     limit: int = 4,
 ) -> list[dict[str, Any]]:
     """Performs semantic similarity search within the specified PGVector collection."""
-    collection_details = await get_collection_details_for_user(
-        user=user,
-        collection_id=collection_id,
+    collection_details = await COLLECTIONS.get(
+        user.identity,
+        collection_id,
     )
+    if not collection_details:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Collection '{collection_id}' not found or not owned by you.",
+        )
     store = get_vectorstore(
         collection_name=collection_details["name"],
     )

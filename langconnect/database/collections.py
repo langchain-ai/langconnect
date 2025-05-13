@@ -19,23 +19,7 @@ class CollectionDetails(TypedDict):
 
 
 class Collections:
-    """Manages pgvector-backed collections, with user_id passed at runtime.
-    """
-
-    @staticmethod
-    def _parse_metadata(raw: Any) -> dict[str, Any]:
-        """Normalize JSONB/text metadata into a Python dict."""
-        if raw is None or raw == "null":
-            return {}
-        if isinstance(raw, str):
-            try:
-                return json.loads(raw)
-            except json.JSONDecodeError:
-                logger.exception("Failed to parse metadata JSON: %r", raw)
-                return {}
-        if isinstance(raw, dict):
-            return raw
-        return {}
+    """Manages pgvector-backed collections, with user_id passed at runtime."""
 
     async def list(
         self,
@@ -56,7 +40,7 @@ class Collections:
             {
                 "uuid": str(r["uuid"]),
                 "name": r["name"],
-                "metadata": self._parse_metadata(r["cmetadata"]),
+                "metadata": json.loads(r["cmetadata"]),
             }
             for r in records
         ]
@@ -83,7 +67,7 @@ class Collections:
         return {
             "uuid": str(rec["uuid"]),
             "name": rec["name"],
-            "metadata": self._parse_metadata(rec["cmetadata"]),
+            "metadata": json.loads(rec["cmetadata"]),
         }
 
     async def create(
@@ -91,9 +75,16 @@ class Collections:
         user_id: str,
         collection_name: str,
         metadata: Optional[dict[str, Any]] = None,
-    ) -> CollectionDetails:
+    ) -> CollectionDetails | None:
         """Create a new collection.
-        Raises 409 if a collection with that name already exists for this user.
+
+        Args:
+            user_id: The ID of the user creating the collection.
+            collection_name: The name of the new collection.
+            metadata: Optional metadata for the collection.
+
+        Returns:
+            Details of the created collection or None if creation failed.
         """
         # check for existing name
         existing = await self._get_by_name(user_id, collection_name)
@@ -111,7 +102,6 @@ class Collections:
 
         # fetch the newly created one
         created = await self._get_by_name(user_id, collection_name)
-        assert created, "Failed to create collection"
         return created
 
     async def update(
@@ -155,7 +145,7 @@ class Collections:
         return {
             "uuid": str(rec["uuid"]),
             "name": rec["name"],
-            "metadata": self._parse_metadata(rec["cmetadata"]),
+            "metadata": json.loads(rec["cmetadata"]),
         }
 
     async def delete(
@@ -177,13 +167,7 @@ class Collections:
                 collection_id,
                 user_id,
             )
-        count = int(result.split()[-1])
-        if count == 0:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Collection '{collection_id}' not found or not owned by you.",
-            )
-        return count
+        return int(result.split()[-1])
 
     async def _get_by_name(
         self,
@@ -207,7 +191,7 @@ class Collections:
         return {
             "uuid": str(rec["uuid"]),
             "name": rec["name"],
-            "metadata": self._parse_metadata(rec["cmetadata"]),
+            "metadata": json.loads(rec["cmetadata"]),
         }
 
 

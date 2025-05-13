@@ -22,12 +22,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["documents"])
 
 
-def get_collection_by_id(
-    user: AuthenticatedUser, collection_id: str
-) -> dict[str, Any] | None:
-    return COLLECTIONS.get(user.identity, str(collection_id))
-
-
 @router.post("/collections/{collection_id}/documents", response_model=dict[str, Any])
 async def documents_create(
     user: Annotated[AuthenticatedUser, Depends(resolve_user)],
@@ -36,7 +30,7 @@ async def documents_create(
     metadatas_json: str | None = Form(None),
 ):
     """Processes and indexes (adds) new document files with optional metadata."""
-    collection = await get_collection_by_id(user, str(collection_id))
+    collection = await COLLECTIONS.get(user.identity, str(collection_id))
     if not collection:
         raise HTTPException(status_code=404, detail="Collection not found")
 
