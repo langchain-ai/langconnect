@@ -26,3 +26,11 @@ def get_embeddings() -> Embeddings:
 
 DEFAULT_EMBEDDINGS = get_embeddings()
 DEFAULT_COLLECTION_NAME = "default_collection"
+
+
+# Database configuration
+POSTGRES_HOST = env("POSTGRES_HOST", cast=str, default="localhost")
+POSTGRES_PORT = env("POSTGRES_PORT", cast=int, default="5432")
+POSTGRES_USER = env("POSTGRES_USER", cast=str, default="langchain")
+POSTGRES_PASSWORD = env("POSTGRES_PASSWORD", cast=str, default="langchain")
+POSTGRES_DB = env("POSTGRES_DB", cast=str, default="langchain_test")
