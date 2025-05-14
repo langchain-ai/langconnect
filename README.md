@@ -1,8 +1,5 @@
 # LangConnect
 
-> [!WARNING]
-> This project is currently in development and is not ready for production use.
-
 LangConnect is a RAG (Retrieval-Augmented Generation) service built with FastAPI and LangChain. It provides a REST API for managing collections and documents, with PostgreSQL and pgvector for vector storage.
 
 ## Features
