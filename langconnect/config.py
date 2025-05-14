@@ -1,3 +1,5 @@
+import json
+
 from langchain_core.embeddings import Embeddings
 from starlette.config import Config, undefined
 
@@ -34,3 +36,13 @@ POSTGRES_PORT = env("POSTGRES_PORT", cast=int, default="5432")
 POSTGRES_USER = env("POSTGRES_USER", cast=str, default="langchain")
 POSTGRES_PASSWORD = env("POSTGRES_PASSWORD", cast=str, default="langchain")
 POSTGRES_DB = env("POSTGRES_DB", cast=str, default="langchain_test")
+
+# Read allowed origins from environment variable
+ALLOW_ORIGINS_JSON = env("ALLOW_ORIGINS", cast=str, default="")
+
+if ALLOW_ORIGINS_JSON:
+    ALLOWED_ORIGINS = json.loads(ALLOW_ORIGINS_JSON.strip())
+    print(f"ALLOW_ORIGINS environment variable set to: {ALLOW_ORIGINS_JSON}")
+else:
+    ALLOWED_ORIGINS = ()
+    print("ALLOW_ORIGINS environment variable not set.")

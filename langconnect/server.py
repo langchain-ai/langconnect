@@ -1,12 +1,13 @@
-import json
 import logging
-import os
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from langconnect.api import admin_router, collections_router, documents_router
-from langconnect.utils import lifespan
+from langconnect.api import collections_router, documents_router
+from langconnect.config import ALLOWED_ORIGINS
+from langconnect.database.collections import CollectionsManager
 
 # Configure logging
 logging.basicConfig(
@@ -16,17 +17,19 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-# Read allowed origins from environment variable
-ALLOW_ORIGINS_JSON = os.getenv("ALLOW_ORIGINS")
-
-if ALLOW_ORIGINS_JSON:
-    ALLOWED_ORIGINS = json.loads(ALLOW_ORIGINS_JSON.strip())
-    logger.info(f"ALLOW_ORIGINS environment variable set to: {ALLOW_ORIGINS_JSON}")
-else:
-    ALLOWED_ORIGINS = ()
-    logger.warning("ALLOW_ORIGINS environment variable not set.")
 
 # Initialize FastAPI app
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Lifespan context manager for FastAPI application."""
+    logger.info("App is starting up. Creating background worker...")
+    await CollectionsManager.setup()
+    yield
+    logger.info("App is shutting down. Stopping background worker...")
+
+
 APP = FastAPI(
     title="LangConnect API",
     description="A REST API for a RAG system using FastAPI and LangChain",
@@ -46,7 +49,6 @@ APP.add_middleware(
 # Include API routers
 APP.include_router(collections_router)
 APP.include_router(documents_router)
-APP.include_router(admin_router)
 
 
 @APP.get("/health")

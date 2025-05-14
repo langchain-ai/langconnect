@@ -68,9 +68,3 @@ async def process_document(
         )  # Store as string for compatibility
 
     return split_docs
-
-
-async def index_document(collection_name: str, document_data: dict):
-    """Index a document into the vector store."""
-    # In a real implementation, this would index into PGVector
-    LOGGER.info(f"Indexing document into collection {collection_name}: {document_data}")
