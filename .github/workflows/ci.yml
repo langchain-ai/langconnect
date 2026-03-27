@@ -6,6 +6,9 @@ on:
   push:
     branches: [ main ]
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
@@ -53,5 +56,4 @@ jobs:
     with:
       working-directory: "."
       python-version: ${{ matrix.python-version }}
-    secrets: inherit
 

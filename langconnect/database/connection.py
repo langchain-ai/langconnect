@@ -1,7 +1,7 @@
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 import asyncpg
 import sqlalchemy
@@ -72,8 +72,8 @@ DBConnection = Union[sqlalchemy.engine.Engine, str]
 def get_vectorstore(
     collection_name: str = config.DEFAULT_COLLECTION_NAME,
     embeddings: Embeddings = config.DEFAULT_EMBEDDINGS,
-    engine: Optional[Union[DBConnection, Engine, AsyncEngine]] = None,
-    collection_metadata: Optional[dict[str, Any]] = None,
+    engine: Union[DBConnection, Engine, AsyncEngine] | None = None,
+    collection_metadata: dict[str, Any] | None = None,
 ) -> PGVector:
     """Initializes and returns a PGVector store for a specific collection,
     using an existing engine or creating one from connection parameters.

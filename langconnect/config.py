@@ -18,10 +18,12 @@ else:
 def get_embeddings() -> Embeddings:
     """Get the embeddings instance based on the environment."""
     if IS_TESTING:
-        from langchain_core.embeddings import DeterministicFakeEmbedding
+        from langchain_core.embeddings import (  # noqa: PLC0415
+            DeterministicFakeEmbedding,
+        )
 
         return DeterministicFakeEmbedding(size=512)
-    from langchain_openai import OpenAIEmbeddings
+    from langchain_openai import OpenAIEmbeddings  # noqa: PLC0415
 
     return OpenAIEmbeddings()
 

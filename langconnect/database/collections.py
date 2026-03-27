@@ -12,7 +12,7 @@ import builtins
 import json
 import logging
 import uuid
-from typing import Any, NotRequired, Optional, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from fastapi import status
 from fastapi.exceptions import HTTPException
@@ -110,7 +110,7 @@ class CollectionsManager:
     async def create(
         self,
         collection_name: str,
-        metadata: Optional[dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> CollectionDetails | None:
         """Create a new collection.
 
@@ -154,8 +154,8 @@ class CollectionsManager:
         self,
         collection_id: str,
         *,
-        name: Optional[str] = None,
-        metadata: Optional[dict[str, Any]] = None,
+        name: str | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> CollectionDetails:
         """Update collection metadata.
 
@@ -292,7 +292,7 @@ class Collection:
     async def delete(
         self,
         *,
-        file_id: Optional[str] = None,
+        file_id: str | None = None,
     ) -> bool:
         """Delete embeddings by file id.
 
