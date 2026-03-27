@@ -103,7 +103,7 @@ async def test_create_collection_requires_auth() -> None:
     async with get_async_test_client() as client:
         payload = {"name": "no_auth", "metadata": {}}
         r = await client.post("/collections", json=payload)
-        assert r.status_code == 403
+        assert r.status_code == 401
         r2 = await client.post(
             "/collections", json=payload, headers=NO_SUCH_USER_HEADERS
         )
