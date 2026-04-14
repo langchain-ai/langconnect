@@ -1,7 +1,8 @@
-import asyncio
 import os
 
 import pytest
+
+from langconnect.database.connection import close_db_pool
 
 if "OPENAI_API_KEY" in os.environ:
     raise AssertionError(
@@ -12,13 +13,14 @@ if "OPENAI_API_KEY" in os.environ:
 os.environ["OPENAI_API_KEY"] = "test_key"
 
 
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create a single asyncio event loop for the entire test session,
-    and only close it once at the very end.
-    This overrides pytest-asyncio's default event_loop fixture.
+@pytest.fixture(autouse=True)
+async def reset_db_pool() -> None:
+    """Close the asyncpg pool after each test.
+
+    With pytest-asyncio 1.x and function-scoped event loops, the global
+    asyncpg pool is bound to the event loop that created it. Without cleanup,
+    subsequent tests fail with 'RuntimeError: Event loop is closed' when
+    they attempt to reuse a pool from a now-closed loop.
     """
-    policy = asyncio.get_event_loop_policy()
-    loop = policy.new_event_loop()
-    yield loop
-    loop.close()
+    yield
+    await close_db_pool()
