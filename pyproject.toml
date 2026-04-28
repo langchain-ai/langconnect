@@ -13,7 +13,7 @@ dependencies = [
     "langchain-text-splitters>=1.1.2",
     "langchain-postgres>=0.0.2",
     "langgraph-sdk>=0.1.48",
-    "python-dotenv>=1.0.1",
+    "python-dotenv>=1.2.2",
     "uvicorn>=0.34.0",
     "aiohttp>=3.11.13",
     "python-multipart>=0.0.26",
@@ -24,7 +24,7 @@ dependencies = [
     "psycopg[binary]>=3.2.6",
     "pillow>=12.2.0",
     "pdfminer.six>=20250416",
-    "lxml>=5.4.0",
+    "lxml>=6.1.0",
     "unstructured>=0.17.2",
     "supabase>=2.15.1",
 ]
