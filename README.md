@@ -23,7 +23,12 @@ LangConnect is a RAG (Retrieval-Augmented Generation) service built with FastAPI
    cd langconnect
    ```
 
-2. Start the services:
+2. Set the environment up:
+   ```bash
+   cp .env.example .env
+   ```
+
+3. Start the services:
    ```bash
    docker-compose up -d
    ```
