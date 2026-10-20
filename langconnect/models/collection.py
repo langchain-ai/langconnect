@@ -1,4 +1,4 @@
-import datetime
+import datetime as dt
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -72,8 +72,8 @@ class DocumentResponse(DocumentBase):
     id: str
     collection_id: str
     embedding: list[float] | None = None  # Represent embedding as list of floats
-    created_at: datetime.datetime
-    updated_at: datetime.datetime
+    created_at: dt.datetime
+    updated_at: dt.datetime
 
     class Config:
         orm_mode = True
